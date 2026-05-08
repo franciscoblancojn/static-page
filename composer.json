@@ -3,6 +3,7 @@
         "franciscoblancojn/wordpress_utils": "^1"
     },
     "config": {
+        "autoloader-suffix": "STPA",
         "platform": {
             "php": "7.4.33"
         }
