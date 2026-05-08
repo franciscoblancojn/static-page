@@ -1,4 +1,4 @@
-# Duplicate Page AI
+# Static Page
 
 Contributors: Francisco Blanco
 
