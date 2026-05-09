@@ -49,7 +49,7 @@ class STPA_PAGE_CONFIG
         foreach (
             self::CONFIG as $key => $value
         ) {
-?>
+        ?>
             <div class="stpa-field">
                 <label>
                     <input
@@ -61,7 +61,7 @@ class STPA_PAGE_CONFIG
                     <?= $value ?>
                 </label>
             </div>
-<?php
+        <?php
         }
     }
 
