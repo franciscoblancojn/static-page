@@ -1,5 +1,5 @@
 <?php
-
+/*
 
 add_action('rest_api_init', function () {
     // /wp-json/STPA/html/1
@@ -33,3 +33,4 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true'
     ]);
 });
+*/

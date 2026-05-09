@@ -8,6 +8,7 @@ class STPA_PAGE_CONFIG
     const KEY_CSS_INTERNO = STPA_KEY . '_PAGE_STATIC_CSS_INTERNO';
     const KEY_JS_EXTERNO = STPA_KEY . '_PAGE_STATIC_JS_EXTERNO';
     const KEY_JS_INTERNO = STPA_KEY . '_PAGE_STATIC_JS_INTERNO';
+    const KEY_HTML = STPA_KEY . '_PAGE_STATIC_HTML';
 
     const CONFIG = [
         self::KEY_ACTIVE => "Activar Carga de Pagina Estatica",
@@ -49,7 +50,7 @@ class STPA_PAGE_CONFIG
         foreach (
             self::CONFIG as $key => $value
         ) {
-        ?>
+?>
             <div class="stpa-field">
                 <label>
                     <input
@@ -61,7 +62,7 @@ class STPA_PAGE_CONFIG
                     <?= $value ?>
                 </label>
             </div>
-        <?php
+<?php
         }
     }
 
@@ -96,6 +97,30 @@ class STPA_PAGE_CONFIG
             self::KEY_CONFIG,
             $config
         );
+        if ($config[self::KEY_ACTIVE]) {
+            $post = get_post($post_id);
+            if ($post) {
+                ob_start();
+                echo apply_filters('the_content', $post->post_content);
+                $html = ob_get_clean();
+                $url = get_permalink($post_id);
+                $html = STPA_PROCESS_HTML::procesingHtml(
+                    $html,
+                    $url,
+                    $config
+                );
+                update_post_meta(
+                    $post_id,
+                    self::KEY_HTML,
+                    $html
+                );
+            }
+        } else {
+            delete_post_meta(
+                $post_id,
+                self::KEY_HTML,
+            );
+        }
     }
 }
 

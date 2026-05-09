@@ -16,7 +16,7 @@ add_action('template_redirect', function () {
      */
     $custom_html = get_post_meta(
         $post->ID,
-        'custom_static_html',
+        STPA_PAGE_CONFIG::KEY_HTML,
         true
     );
 
