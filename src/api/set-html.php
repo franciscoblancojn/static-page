@@ -8,7 +8,7 @@ class STPA_API_SET_HTML extends STPA_API
     {
         $post_id = (int) $request['id'];
         if (!current_user_can('edit_post', $post_id)) {
-            return new WP_Error('forbidden', 'No tienes permiso para editar esta página', ['status' => 403]);
+            throw new Exception('No tienes permiso para editar esta página');
         }
     }
     public static function permission_callback()
@@ -21,13 +21,13 @@ class STPA_API_SET_HTML extends STPA_API
         $post = get_post($post_id);
 
         if (!$post) {
-            return new WP_Error('not_found', 'Page not found', ['status' => 404]);
+            throw new Exception('Page not found');
         }
 
         $html = $request->get_param('html');
 
         if (is_null($html)) {
-            return new WP_Error('missing_param', 'El parámetro html es requerido', ['status' => 400]);
+            throw new Exception('El parámetro html es requerido');
         }
 
         update_post_meta(

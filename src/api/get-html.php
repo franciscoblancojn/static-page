@@ -11,7 +11,7 @@ class STPA_API_GET_HTML extends STPA_API
         $post = get_post($post_id);
 
         if (!$post) {
-            return new WP_Error('not_found', 'Page not found');
+            throw new Exception('Page not found');
         }
 
         setup_postdata($post);
