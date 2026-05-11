@@ -39,7 +39,7 @@ class STPA_API
     }
     public static function validateApiKey($request)
     {
-        $apiKey = $request['api-key'];
+        $apiKey = $request->get_header('api-key');
         if ($apiKey != self::GetApiKey()) {
             throw new Exception("Api key Invalid");
         }
