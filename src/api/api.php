@@ -21,6 +21,7 @@ class STPA_API
             'methods' => static::$METHODS,
             'callback' => function ($request) {
                 try {
+                    static::validateUser($request);
                     static::validateApiKey($request);
                     static::validateEnpoint($request);
                     return static::enpoint($request);
@@ -41,6 +42,13 @@ class STPA_API
         $apiKey = $request['api-key'];
         if ($apiKey != self::GetApiKey()) {
             throw new Exception("Api key Invalid");
+        }
+    }
+    public static function validateUser($request)
+    {
+        $nonce = $request->get_header('X-WP-Nonce');
+        if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest') || !is_user_logged_in()) {
+            throw new Exception('No autorizado');
         }
     }
     public static function validateEnpoint($request) {}
