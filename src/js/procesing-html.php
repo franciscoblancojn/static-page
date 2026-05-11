@@ -19,12 +19,12 @@
       // espacios múltiples
       .replace(/\s+/g, " ")
 
-      // espacios innecesarios
+      // espacios innecesarios (solo fuera de strings)
+      .replace(/;\s+/g, ";")
       .replace(/\s*{\s*/g, "{")
       .replace(/\s*}\s*/g, "}")
       .replace(/\s*:\s*/g, ":")
       .replace(/\s*;\s*/g, ";")
-      .replace(/\s*,\s*/g, ",")
 
       // ; antes de }
       .replace(/;}/g, "}")
@@ -151,7 +151,7 @@
       }
     }
 
-    return css;
+    return cssMinfy(css);
   }
 
   function convinarCssInterno(doc) {
@@ -160,7 +160,9 @@
     let css = "";
 
     for (const style of styles) {
-      css += "\n" + (style.textContent || "");
+      let content = style.textContent || "";
+      content = content.replace(/<!--|-->/g, "");
+      css += "\n" + content;
       style.remove();
     }
 
@@ -330,7 +332,9 @@
     css = css.trim();
     if (css) {
       const style = doc.createElement("style");
-      style.textContent = cssMinfy(css);
+      const imports = css.match(/@import[^;]+;/g) || [];
+      const rest = css.replace(/@import[^;]+;/g, "");
+      style.textContent = imports.join("") + "\n" + rest;
       doc.head.appendChild(style);
     }
 

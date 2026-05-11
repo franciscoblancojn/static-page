@@ -103,7 +103,7 @@ class STPA_PAGE_CONFIG
                         const html = await getCode(url);
 
                         const finalHtml = await procesingHtml(html, url, config);
-                        console.log(finalHtml);
+                        // console.log(finalHtml);
 
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
@@ -126,7 +126,7 @@ class STPA_PAGE_CONFIG
                             resultContent.textContent = data?.message ?? "Error al guardar"
                         }
                         setTimeout(() => {
-                            // window.location.reload()
+                            window.location.reload()
                         }, 500);
                     } catch (error) {
                         resultContent.textContent = error.message
