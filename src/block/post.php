@@ -95,39 +95,46 @@ class STPA_PAGE_CONFIG
                     }, {})
                 }
                 const onGeneratePaginaEstatica = async () => {
-                    btn.classList.add("loader")
-                    btn.textContent = "Generando..."
-                    const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
-                    const html = await getCode(url);
-                    // console.log(html);
+                    try {
+                        const config = onGetConfig();
+                        btn.classList.add("loader")
+                        btn.textContent = "Generando..."
+                        const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
+                        const html = await getCode(url);
+                        // console.log(html);
 
-                    const finalHtml = await procesingHtml(html, url, onGetConfig());
+                        const finalHtml = await procesingHtml(html, url, config);
 
-                    const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-WP-Nonce": "<?= wp_create_nonce('wp_rest') ?>",
-                            "api-key": "<?= STPA_API::getApiKey() ?>"
-                        },
-                        body: JSON.stringify({
-                            html
-                        })
-                    });
+                        const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-WP-Nonce": "<?= wp_create_nonce('wp_rest') ?>",
+                                "api-key": "<?= STPA_API::getApiKey() ?>"
+                            },
+                            body: JSON.stringify({
+                                html:finalHtml
+                            })
+                        });
 
-                    const data = await response.json();
+                        const data = await response.json();
 
-                    btn.classList.remove("loader")
-                    btn.textContent = "Generar Pagina Estatica"
-                    if (data.success) {
-                        resultContent.textContent = "Guardado ✓"
-                    } else {
-                        console.error("Error saving:", data)
-                        resultContent.textContent = data?.message ?? "Error al guardar"
+                        if (data.success) {
+                            resultContent.textContent = "Guardado ✓"
+                        } else {
+                            console.error("Error saving:", data)
+                            resultContent.textContent = data?.message ?? "Error al guardar"
+                        }
+                        setTimeout(() => {
+                            document.getElementById("publish")?.click?.()
+                        }, 500);
+                    } catch (error) {
+                        resultContent.textContent = error.message
+
+                    } finally {
+                        btn.textContent = "Generar Pagina Estatica"
+                        btn.classList.remove("loader")
                     }
-                    setTimeout(() => {
-                        document.getElementById("publish")?.click?.()
-                    }, 500);
                 }
                 btn.addEventListener("click", onGeneratePaginaEstatica)
             }

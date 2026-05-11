@@ -358,19 +358,21 @@
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     eliminarWpadminbar(doc);
+    console.log(config);
+    
     if (!config?.<?= STPA_KEY ?>_PAGE_STATIC_ACTIVE) {
       throw new Error("Activa Carga de Pagina Estatica");
     }
-    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_CSS_EXTERNO) {
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO) {
       await convinarCssExterno(doc, baseUrl);
     }
-    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_CSS_INTERNO) {
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_INTERNO) {
       convinarCssInterno(doc);
     }
-    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_JS_EXTERNO) {
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO) {
       await convinarJsExterno(doc, baseUrl);
     }
-    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_JS_INTERNO) {
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_INTERNO) {
       convinarJsInterno(doc);
     }
     fixLazyImages(doc);
