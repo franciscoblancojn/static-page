@@ -75,7 +75,7 @@ class STPA_PAGE_CONFIG
                 id="btn-onGeneratePaginaEstatica"
                 value="Guardar"
                 class="button button-primary">
-                Generar Pagina Estatica
+                Generar Pagina Estatica y Guardar
             </div>
         </div>
         <div id="<?= STPA_KEY ?>-result">
@@ -86,12 +86,22 @@ class STPA_PAGE_CONFIG
             const <?= STPA_KEY ?>_onLoad = () => {
                 const btn = document.getElementById("btn-onGeneratePaginaEstatica")
                 const resultContent = document.getElementById("<?= STPA_KEY ?>-result")
+                const onGetConfig = () => {
+                    return Object.keys(stpa_json_config_keys).reduce((a, c) => {
+                        return {
+                            ...a,
+                            [c]: document.querySelector(`[name='${c}']`)?.checked ?? false
+                        }
+                    }, {})
+                }
                 const onGeneratePaginaEstatica = async () => {
                     btn.classList.add("loader")
                     btn.textContent = "Generando..."
-                    const url = "<?= $url ?>";
+                    const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
                     const html = await getCode(url);
-                    const finalHtml = await procesingHtml(html, url);
+                    // console.log(html);
+
+                    const finalHtml = await procesingHtml(html, url, onGetConfig());
 
                     const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                         method: "POST",
@@ -101,7 +111,7 @@ class STPA_PAGE_CONFIG
                             "api-key": "<?= STPA_API::getApiKey() ?>"
                         },
                         body: JSON.stringify({
-                            html: finalHtml
+                            html
                         })
                     });
 
@@ -113,8 +123,11 @@ class STPA_PAGE_CONFIG
                         resultContent.textContent = "Guardado ✓"
                     } else {
                         console.error("Error saving:", data)
-                        resultContent.textContent = "Error al guardar"
+                        resultContent.textContent = data?.message ?? "Error al guardar"
                     }
+                    setTimeout(() => {
+                        document.getElementById("publish")?.click?.()
+                    }, 500);
                 }
                 btn.addEventListener("click", onGeneratePaginaEstatica)
             }

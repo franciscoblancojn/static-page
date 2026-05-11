@@ -1,4 +1,5 @@
 <script>
+  const stpa_json_config_keys = <?= json_encode(STPA_PAGE_CONFIG::CONFIG) ?>;
   /**
    * Minificador CSS simple sin librerías
    */
@@ -353,20 +354,29 @@
    * - Descarga el contenido
    * - Reemplaza por <style> y <script>
    */
-  async function procesingHtml(html, baseUrl = window.location.href) {
+  async function procesingHtml(html, baseUrl = window.location.href, config = {}) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
-
     eliminarWpadminbar(doc);
-    await convinarCssExterno(doc, baseUrl);
-    convinarCssInterno(doc);
-    // await convinarJsExterno(doc, baseUrl);  de momento no xq esta dando problemas
-    convinarJsInterno(doc); //de momento no xq esta dando problemas
+    if (!config?.<?= STPA_KEY ?>_PAGE_STATIC_ACTIVE) {
+      throw new Error("Activa Carga de Pagina Estatica");
+    }
+    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_CSS_EXTERNO) {
+      await convinarCssExterno(doc, baseUrl);
+    }
+    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_CSS_INTERNO) {
+      convinarCssInterno(doc);
+    }
+    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_JS_EXTERNO) {
+      await convinarJsExterno(doc, baseUrl);
+    }
+    if (!config?.<?= STPA_KEY ?>PAGE_STATIC_JS_INTERNO) {
+      convinarJsInterno(doc);
+    }
     fixLazyImages(doc);
-    // return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+
     return htmlMinify(
-      "<!DOCTYPE html>\n" + doc.documentElement.outerHTML, // de momento no xq esta dando problemas
+      "<!DOCTYPE html>\n" + doc.documentElement.outerHTML,
     );
   }
-
 </script>

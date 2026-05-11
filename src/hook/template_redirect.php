@@ -1,6 +1,9 @@
 <?php
 add_action('template_redirect', function () {
 
+    if (isset($_GET[STPA_KEY."_DISABLE"])) {
+        return;
+    }
     if (!is_page()) {
         return;
     }
