@@ -101,9 +101,9 @@ class STPA_PAGE_CONFIG
                         btn.textContent = "Generando..."
                         const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
                         const html = await getCode(url);
-                        // console.log(html);
 
                         const finalHtml = await procesingHtml(html, url, config);
+                        console.log(finalHtml);
 
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
@@ -113,7 +113,7 @@ class STPA_PAGE_CONFIG
                                 "api-key": "<?= STPA_API::getApiKey() ?>"
                             },
                             body: JSON.stringify({
-                                html:finalHtml
+                                html: finalHtml
                             })
                         });
 
@@ -126,7 +126,7 @@ class STPA_PAGE_CONFIG
                             resultContent.textContent = data?.message ?? "Error al guardar"
                         }
                         setTimeout(() => {
-                            document.getElementById("publish")?.click?.()
+                            // window.location.reload()
                         }, 500);
                     } catch (error) {
                         resultContent.textContent = error.message

@@ -129,87 +129,42 @@
     return new URL(url, baseUrl).href;
   }
   async function convinarCssExterno(doc, baseUrl) {
-    /**
-     * =========================
-     * CSS
-     * =========================
-     */
-    const links = [...doc.querySelectorAll('link[rel="stylesheet"]')];
+    const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
-    let combinedCss = "";
+    let css = "";
 
     for (const link of links) {
       const href = link.getAttribute("href");
-
       if (!href) continue;
 
       try {
         const cssUrl = toAbsoluteUrl(href, baseUrl);
 
-        // SOLO wp-content
         if (!isWpContent(cssUrl)) {
           continue;
         }
 
-        console.log("CSS:", cssUrl);
-
-        const cssCode = await getCode(cssUrl);
-
-        // mantener orden
-        combinedCss += "\n" + cssCode;
-
-        // eliminar original
+        css += "\n" + await getCode(cssUrl);
         link.remove();
       } catch (e) {
         console.error("Error CSS:", href, e);
       }
     }
 
-    /**
-     * =========================
-     * CREAR STYLE FINAL
-     * =========================
-     */
-    if (combinedCss.trim()) {
-      const style = doc.createElement("style");
-
-      style.textContent = cssMinfy(combinedCss);
-
-      doc.head.appendChild(style);
-    }
+    return css;
   }
 
   function convinarCssInterno(doc) {
-    /**
-     * =========================
-     * COMBINAR CSS INTERNOS
-     * =========================
-     */
-    const internalStyles = [...doc.querySelectorAll("style")];
+    const styles = doc.querySelectorAll("style");
 
-    let internalCss = "";
+    let css = "";
 
-    for (const style of internalStyles) {
-      const css = style.textContent || "";
-
-      internalCss += "\n" + css;
-
-      // eliminar style original
+    for (const style of styles) {
+      css += "\n" + (style.textContent || "");
       style.remove();
     }
 
-    /**
-     * =========================
-     * CREAR STYLE FINAL
-     * =========================
-     */
-    if (internalCss.trim()) {
-      const finalStyle = doc.createElement("style");
-
-      finalStyle.textContent = cssMinfy(internalCss);
-
-      doc.head.appendChild(finalStyle);
-    }
+    return css;
   }
   async function convinarJsExterno(doc, baseUrl) {
     /**
@@ -358,17 +313,27 @@
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     eliminarWpadminbar(doc);
-    console.log(config);
-    
+
     if (!config?.<?= STPA_KEY ?>_PAGE_STATIC_ACTIVE) {
       throw new Error("Activa Carga de Pagina Estatica");
     }
+
+    let css = "";
+
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO) {
-      await convinarCssExterno(doc, baseUrl);
+      css += await convinarCssExterno(doc, baseUrl);
     }
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_INTERNO) {
-      convinarCssInterno(doc);
+      css += convinarCssInterno(doc);
     }
+
+    css = css.trim();
+    if (css) {
+      const style = doc.createElement("style");
+      style.textContent = cssMinfy(css);
+      doc.head.appendChild(style);
+    }
+
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO) {
       await convinarJsExterno(doc, baseUrl);
     }
