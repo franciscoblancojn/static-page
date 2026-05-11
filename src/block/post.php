@@ -78,7 +78,7 @@ class STPA_PAGE_CONFIG
                 Generar Pagina Estatica
             </div>
         </div>
-        <div class="<?= STPA_KEY ?>-result">
+        <div id="<?= STPA_KEY ?>-result">
 
         </div>
 

@@ -17,25 +17,27 @@ class STPA_API
     }
     public static function init()
     {
-        register_rest_route(STPA_KEY, static::$URL_ENDPOINT, [
-            'methods' => static::$METHODS,
-            'callback' => function ($request) {
-                try {
-                    static::validateUser($request);
-                    static::validateApiKey($request);
-                    static::validateEnpoint($request);
-                    return static::enpoint($request);
-                } catch (\Throwable $th) {
-                    return [
-                        'success' => false,
-                        'message' => $th->getMessage(),
-                    ];
+        add_action('rest_api_init', function () {
+            register_rest_route(STPA_KEY, static::$URL_ENDPOINT, [
+                'methods' => static::$METHODS,
+                'callback' => function ($request) {
+                    try {
+                        static::validateApiKey($request);
+                        static::validateUser($request);
+                        static::validateEnpoint($request);
+                        return static::enpoint($request);
+                    } catch (\Throwable $th) {
+                        return [
+                            'success' => false,
+                            'message' => $th->getMessage(),
+                        ];
+                    }
+                },
+                'permission_callback' => function () {
+                    return self::permission_callback();
                 }
-            },
-            'permission_callback' => function () {
-                return self::permission_callback();
-            }
-        ]);
+            ]);
+        });
     }
     public static function validateApiKey($request)
     {
@@ -47,7 +49,10 @@ class STPA_API
     public static function validateUser($request)
     {
         $nonce = $request->get_header('X-WP-Nonce');
-        if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest') || !is_user_logged_in()) {
+        if (!$nonce) {
+            throw new Exception('No autorizado');
+        }
+        if (!wp_verify_nonce($nonce, 'wp_rest') || !is_user_logged_in()) {
             throw new Exception('No autorizado');
         }
     }
