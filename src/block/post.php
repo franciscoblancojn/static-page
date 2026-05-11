@@ -47,6 +47,7 @@ class STPA_PAGE_CONFIG
         wp_nonce_field(STPA_KEY . '_page_config_nonce', STPA_KEY . '_page_config_nonce');
 
         $config = get_post_meta($post->ID, self::KEY_CONFIG, true);
+        $url = get_permalink($post->ID);
         foreach (
             self::CONFIG as $key => $value
         ) {
@@ -62,8 +63,54 @@ class STPA_PAGE_CONFIG
                     <?= $value ?>
                 </label>
             </div>
-<?php
+        <?php
         }
+        require_once STPA_DIR . 'src/js/procesing-html.php';
+        ?>
+
+        <div
+            class="content-btn"
+            style="margin-top: 1rem;">
+            <div
+                id="btn-onGeneratePaginaEstatica"
+                value="Guardar"
+                class="button button-primary">
+                Generar Pagina Estatica
+            </div>
+        </div>
+
+        <script>
+            const btn = document.getElementById("btn-onGeneratePaginaEstatica")
+            const onGeneratePaginaEstatica = async () => {
+                btn.classList.add("loader")
+                btn.textContent = "Generando..."
+                const url = "<?= $url ?>";
+                const html = await getCode(url);
+                const finalHtml = await procesingHtml(html, url);
+
+                const response = await fetch("/wp-json/<?= STPA_KEY?>/html/<?= $post->ID ?>", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-WP-Nonce": "<?= wp_create_nonce('wp_rest') ?>"
+                    },
+                    body: JSON.stringify({ html: finalHtml })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    btn.classList.remove("loader")
+                    btn.textContent = "Guardado ✓"
+                } else {
+                    console.error("Error saving:", data)
+                    btn.classList.remove("loader")
+                    btn.textContent = "Error al guardar"
+                }
+            }
+            btn.addEventListener("click", onGeneratePaginaEstatica)
+        </script>
+<?php
     }
 
     /**
@@ -97,30 +144,6 @@ class STPA_PAGE_CONFIG
             self::KEY_CONFIG,
             $config
         );
-        if ($config[self::KEY_ACTIVE]) {
-            $post = get_post($post_id);
-            if ($post) {
-                ob_start();
-                echo apply_filters('the_content', $post->post_content);
-                $html = ob_get_clean();
-                $url = get_permalink($post_id);
-                $html = STPA_PROCESS_HTML::procesingHtml(
-                    $html,
-                    $url,
-                    $config
-                );
-                update_post_meta(
-                    $post_id,
-                    self::KEY_HTML,
-                    $html
-                );
-            }
-        } else {
-            delete_post_meta(
-                $post_id,
-                self::KEY_HTML,
-            );
-        }
     }
 }
 
