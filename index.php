@@ -29,56 +29,63 @@ define("STPA_BASENAME", plugin_basename(__FILE__));
 define("STPA_DIR", plugin_dir_path(__FILE__));
 define("STPA_URL", plugin_dir_url(__FILE__));
 
-require_once STPA_DIR . 'update.php';
-github_updater_plugin_wordpress([
+require_once STPA_DIR . 'update2.php';
+github_updater_plugin_wordpress2([
     'basename' => STPA_BASENAME,
     'dir' => STPA_DIR,
     'file' => "index.php",
     'path_repository' => 'franciscoblancojn/static-page',
-    'branch' => 'master',
-    'token_array_split' => [
-        "g",
-        "h",
-        "p",
-        "_",
-        "G",
-        "4",
-        "W",
-        "E",
-        "W",
-        "F",
-        "p",
-        "V",
-        "U",
-        "E",
-        "F",
-        "V",
-        "x",
-        "F",
-        "U",
-        "n",
-        "b",
-        "M",
-        "k",
-        "P",
-        "R",
-        "x",
-        "o",
-        "f",
-        "t",
-        "Y",
-        "8",
-        "z",
-        "j",
-        "t",
-        "4",
-        "E",
-        "x",
-        "b",
-        "i",
-        "9"
-    ]
+    'branch' => 'master'
 ]);
+// github_updater_plugin_wordpress([
+//     'basename' => STPA_BASENAME,
+//     'dir' => STPA_DIR,
+//     'file' => "index.php",
+//     'path_repository' => 'franciscoblancojn/static-page',
+//     'branch' => 'master',
+//     'token_array_split' => [
+//         "g",
+//         "h",
+//         "p",
+//         "_",
+//         "G",
+//         "4",
+//         "W",
+//         "E",
+//         "W",
+//         "F",
+//         "p",
+//         "V",
+//         "U",
+//         "E",
+//         "F",
+//         "V",
+//         "x",
+//         "F",
+//         "U",
+//         "n",
+//         "b",
+//         "M",
+//         "k",
+//         "P",
+//         "R",
+//         "x",
+//         "o",
+//         "f",
+//         "t",
+//         "Y",
+//         "8",
+//         "z",
+//         "j",
+//         "t",
+//         "4",
+//         "E",
+//         "x",
+//         "b",
+//         "i",
+//         "9"
+//     ]
+// ]);
 
 use franciscoblancojn\wordpress_utils\FWUSystemLog;
 
