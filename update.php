@@ -166,6 +166,7 @@ if (!function_exists("github_updater_plugin_wordpress_function")) {
                     ),
                     'upgrade-plugin_' . $file
                 );
+                $plugin_slug =  basename(rtrim($config['dir'], '/'));
 
                 $links[] = '
                     <a 
@@ -174,6 +175,12 @@ if (!function_exists("github_updater_plugin_wordpress_function")) {
                     >
                         Actualizar
                     </a>
+                    <style>
+                        tr.plugin-update-tr[data-slug="'.$plugin_slug.'"] a,
+                        tr.plugin-update-tr[data-slug="'.$plugin_slug.'"] a + *{
+                            display:none;
+                        }
+                    </style>
                 ';
 
                 return $links;
