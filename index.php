@@ -10,6 +10,7 @@ License: GPL2+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: wc-static-page
 */
+//texto de prueba fuera de realese
 
 if (!function_exists('is_plugin_active'))
     require_once(ABSPATH . '/wp-admin/includes/plugin.php');
