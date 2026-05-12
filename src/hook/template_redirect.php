@@ -13,7 +13,10 @@ add_action('template_redirect', function () {
     if (!$post) {
         return;
     }
-
+    $config = get_post_meta($post->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
+    if(!isset($config[STPA_PAGE_CONFIG::KEY_ACTIVE]) || !$config[STPA_PAGE_CONFIG::KEY_ACTIVE]){
+        return;
+    }
     /**
      * Obtener HTML personalizado
      */
