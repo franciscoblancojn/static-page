@@ -43,37 +43,18 @@ add_action('template_redirect', function () {
     if (!isset($config[STPA_PAGE_CONFIG::KEY_ACTIVE]) || !$config[STPA_PAGE_CONFIG::KEY_ACTIVE]) {
         return;
     }
-    /**
-     * Obtener HTML personalizado
-     */
-    $custom_html = get_post_meta(
+
+    $file = get_post_meta(
         $post->ID,
-        STPA_PAGE_CONFIG::KEY_HTML,
+        STPA_PAGE_CONFIG::KEY_HTML_FILE,
         true
     );
 
-    /**
-     * Si no existe HTML personalizado
-     * continuar normal
-     */
-    if (empty($custom_html)) {
-        return;
+    if ($file && file_exists($file)) {
+        status_header(200);
+        header('Content-Type: text/html; charset=utf-8');
+        echo file_get_contents($file);
+        exit;
     }
-
-    /**
-     * Headers opcionales
-     */
-    status_header(200);
-
-    header('Content-Type: text/html; charset=utf-8');
-
-    /**
-     * Imprimir HTML
-     */
-    echo $custom_html;
-
-    /**
-     * Detener WordPress
-     */
-    exit;
+    return;
 });

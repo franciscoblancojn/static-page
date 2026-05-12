@@ -9,6 +9,7 @@ class STPA_PAGE_CONFIG
     const KEY_JS_EXTERNO = STPA_KEY . '_PAGE_STATIC_JS_EXTERNO';
     const KEY_JS_INTERNO = STPA_KEY . '_PAGE_STATIC_JS_INTERNO';
     const KEY_HTML = STPA_KEY . '_PAGE_STATIC_HTML';
+    const KEY_HTML_FILE = STPA_KEY . '_PAGE_STATIC_HTML_FILE';
 
     const CONFIG = [
         self::KEY_ACTIVE => "Activar Carga de Pagina Estatica",
