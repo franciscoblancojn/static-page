@@ -84,6 +84,11 @@ class STPA_PAGE_CONFIG
 
         <script>
             const <?= STPA_KEY ?>_onLoad = () => {
+                const headers = {
+                    "Content-Type": "application/json",
+                    "X-WP-Nonce": "<?= wp_create_nonce('wp_rest') ?>",
+                    "api-key": "<?= STPA_API::getApiKey() ?>"
+                }
                 const btn = document.getElementById("btn-onGeneratePaginaEstatica")
                 const resultContent = document.getElementById("<?= STPA_KEY ?>-result")
                 const onGetConfig = () => {
@@ -96,42 +101,43 @@ class STPA_PAGE_CONFIG
                 }
                 const onGeneratePaginaEstatica = async () => {
                     try {
-                        const config = onGetConfig();
                         btn.classList.add("loader")
                         btn.textContent = "Generando..."
+                        const config = onGetConfig();
+                        const response_config = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/<?= $post->ID ?>", {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({
+                                config
+                            })
+                        });
+                        const data_config = await response_config.json();
+                        if (!data_config.success) {
+                            throw new Error(data_config?.message ?? "Error al guardar")
+                        }
+
                         const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
                         const html = await getCode(url);
-
                         const finalHtml = await procesingHtml(html, url, config);
-                        // console.log(finalHtml);
-
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-WP-Nonce": "<?= wp_create_nonce('wp_rest') ?>",
-                                "api-key": "<?= STPA_API::getApiKey() ?>"
-                            },
+                            headers,
                             body: JSON.stringify({
                                 html: finalHtml
                             })
                         });
-
                         const data = await response.json();
-
-                        if (data.success) {
-                            resultContent.textContent = "Guardado ✓"
-                        } else {
-                            console.error("Error saving:", data)
-                            resultContent.textContent = data?.message ?? "Error al guardar"
+                        if (!data.success) {
+                            throw new Error(data?.message ?? "Error al guardar")
                         }
+                        resultContent.textContent = data?.message ?? "Guardado ✓"
+
+                        btn.textContent = "Guardando..."
                         setTimeout(() => {
                             window.location.reload()
                         }, 500);
                     } catch (error) {
                         resultContent.textContent = error.message
-
-                    } finally {
                         btn.textContent = "Generar Pagina Estatica"
                         btn.classList.remove("loader")
                     }
