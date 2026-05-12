@@ -11,7 +11,7 @@ if (!function_exists("github_updater_plugin_wordpress_function")) {
 
         /**
          * Evitar demasiadas consultas a GitHub
-         * solo refrescar cada 1 minuto
+         * solo refrescar cada 10 minuto
          */
         if (!get_transient('github_updater_plugin_wordpress_check')) {
 
@@ -20,7 +20,7 @@ if (!function_exists("github_updater_plugin_wordpress_function")) {
             set_transient(
                 'github_updater_plugin_wordpress_check',
                 true,
-                1 * MINUTE_IN_SECONDS
+                10 * MINUTE_IN_SECONDS
             );
         }
 
