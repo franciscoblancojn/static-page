@@ -36,6 +36,7 @@
    * Minificador JS simple sin librerías
    */
   function jsMinify(js = "") {
+    return js;
     return (
       js
 
@@ -168,12 +169,27 @@
 
     return css;
   }
+
+  function shouldIgnoreScript(script, jsUrl) {
+    // atributos peligrosos
+    if (
+      script.type === "module" ||
+      script.defer ||
+      script.async
+    ) {
+      // return true;
+    }
+
+    const blacklist = [
+      "elementor",
+      ".min.js",
+    ];
+
+    return blacklist.some((item) =>
+      jsUrl.toLowerCase().includes(item.toLowerCase())
+    );
+  }
   async function convinarJsExterno(doc, baseUrl) {
-    /**
-     * =========================
-     * JS
-     * =========================
-     */
     const scripts = [...doc.querySelectorAll("script[src]")];
 
     let combinedJs = "";
@@ -186,34 +202,42 @@
       try {
         const jsUrl = toAbsoluteUrl(src, baseUrl);
 
-        // SOLO wp-content
         if (!isWpContent(jsUrl)) {
+          continue;
+        }
+
+        if (shouldIgnoreScript(script, jsUrl)) {
+          console.log("IGNORADO:", jsUrl);
           continue;
         }
 
         console.log("JS:", jsUrl);
 
-        const jsCode = await getCode(jsUrl);
+        let jsCode = await getCode(jsUrl);
 
-        // mantener orden
-        combinedJs += "\n;\n" + jsCode;
+        // eliminar sourcemaps
+        jsCode = jsCode.replace(
+          /\/\/# sourceMappingURL=.*$/gm,
+          ""
+        );
 
-        // eliminar original
+        combinedJs += `
+            ;
+            ${jsCode}
+            ;
+        `;
+
         script.remove();
       } catch (e) {
         console.error("Error JS:", src, e);
       }
     }
 
-    /**
-     * =========================
-     * CREAR SCRIPT FINAL
-     * =========================
-     */
     if (combinedJs.trim()) {
       const newScript = doc.createElement("script");
 
-      newScript.textContent = jsMinify(combinedJs);
+      // SIN regex minify
+      newScript.textContent = combinedJs;
 
       doc.body.appendChild(newScript);
     }
@@ -294,14 +318,39 @@
         img.setAttribute("src", lazySrc);
       }
 
-      // eliminar atributos lazy
+      const lazySrcset =
+        img.getAttribute("data-srcset") ||
+        img.getAttribute("data-lazy-srcset");
+
+      if (lazySrcset) {
+        img.setAttribute("srcset", lazySrcset);
+      }
+
+      // limpiar lazy attrs
       img.removeAttribute("loading");
       img.removeAttribute("data-src");
       img.removeAttribute("data-lazy-src");
-      img.removeAttribute("srcset");
       img.removeAttribute("data-srcset");
+      img.removeAttribute("data-lazy-srcset");
+
+      // clases lazy
       img.classList.remove("lazyload");
       img.classList.remove("lazyloading");
+      img.classList.remove("lazy");
+      img.classList.remove("lazyloaded");
+    }
+
+    // soporte picture/source
+    const sources = [...doc.querySelectorAll("source")];
+
+    for (const source of sources) {
+      const srcset =
+        source.getAttribute("data-srcset") ||
+        source.getAttribute("data-lazy-srcset");
+
+      if (srcset) {
+        source.setAttribute("srcset", srcset);
+      }
     }
   }
   /**
