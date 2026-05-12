@@ -79,7 +79,7 @@
       html
 
       // eliminar comentarios HTML
-      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(<?= "/<!--[\s\S]*?-->/g" ?>, "")
 
       // eliminar saltos de linea
       .replace(/\n/g, " ")
@@ -161,7 +161,7 @@
 
     for (const style of styles) {
       let content = style.textContent || "";
-      content = content.replace(/<!--|-->/g, "");
+      content = content.replace(<?= "/<!--|-->/g" ?>, "");
       css += "\n" + content;
       style.remove();
     }
