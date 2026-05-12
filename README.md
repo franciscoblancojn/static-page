@@ -1,12 +1,12 @@
 # Static Page
 
-Generate optimized static HTML versions of your WordPress pages. Improves performance by inlining CSS, removing the admin bar, fixing lazy images, and serving a fully self-contained HTML file instead of dynamically rendering the page on each visit.
+Generate optimized static HTML files from your WordPress pages. Inlines CSS, removes the admin bar, fixes lazy images, and serves a pre-generated static HTML file instead of dynamically rendering the page on each visit.
 
 **Contributors:** Francisco Blanco  
 **Tags:** static page, performance, cache, optimization, elementor  
 **Requires at least:** 5.0  
 **Tested up to:** 6.0  
-**Stable tag:** 1.0.1  
+**Stable tag:** 1.2.0  
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,20 +14,23 @@ Generate optimized static HTML versions of your WordPress pages. Improves perfor
 
 ## Description
 
-Static Page converts your WordPress pages into **standalone static HTML**. Instead of loading WordPress on every visit (running PHP queries, hooks, filters), the plugin serves a pre-generated HTML file directly — resulting in faster load times and reduced server load.
+Static Page converts your WordPress pages into **standalone static HTML files** stored in `wp-content/uploads/STPA/`. Instead of loading WordPress on every visit (running PHP queries, hooks, filters), the plugin serves the pre-generated HTML file directly — resulting in faster load times and reduced server load.
 
 ### Features
 
 - **One-click static generation** — from the page editor, click "Generar Pagina Estatica y Guardar"
+- **Config saved via REST API** — checkbox settings are sent to `/wp-json/STPA/post-config/{id}` before generation
+- **Static file storage** — generated HTML is saved to `wp-content/uploads/STPA/page-{id}.html`
 - **CSS inlining** — combines all external (`<link>`) and internal (`<style>`) CSS into a single `<style>` tag
 - **CSS minification** — removes comments, whitespace, and redundant characters
 - **`@import` handling** — moves all `@import` rules to the top of the combined stylesheet (required by CSS spec)
+- **HTML comment stripping** — removes `<!-- -->` wrappers commonly found inside WordPress `<style>` tags
 - **Admin bar removal** — strips `#wpadminbar` and fixes the top margin
 - **Lazy image restoration** — replaces `data-src`, `data-lazy-src`, etc. with real `src` attributes
 - **HTML minification** — removes HTML comments, whitespace, and newlines
-- **Elementor compatibility** — respects Elementor edit/preview modes
-- **REST API** — endpoints for fetching page content and saving/retrieving static HTML
-- **API key authentication** — secure access for external/CI build systems
+- **Elementor compatibility** — respects Elementor edit/preview modes and `?action=elementor`
+- **Disable query param** — append `?STPA_DISABLE=1` to view the original WordPress-rendered page
+- **REST API authentication** — requires both `X-WP-Nonce` and `api-key` headers
 
 ---
 
@@ -52,37 +55,48 @@ Static Page converts your WordPress pages into **standalone static HTML**. Inste
    - **Procesar JS Externo (Beta)** — inline external JavaScript files
    - **Procesar JS Interno (Beta)** — combine inline scripts
 3. Click **"Generar Pagina Estatica y Guardar"**
-4. The page will be automatically saved (published/updated)
 
-Once generated, the plugin serves the static HTML directly, bypassing WordPress rendering entirely.
+The plugin will:
+1. Save the config via `POST /wp-json/STPA/post-config/{id}`
+2. Fetch the page HTML with `?STPA_DISABLE=1` (bypasses static serving)
+3. Process the HTML (inline CSS, minify, remove admin bar, fix images)
+4. Save the final HTML to `wp-content/uploads/STPA/page-{id}.html`
+5. Reload the page
+
+Once generated, the plugin serves the static HTML file directly via `file_get_contents()`, bypassing WordPress rendering entirely.
 
 ### Disable Static Page for a Page
 
-Simply uncheck **"Activar Carga de Pagina Estatica"** and save the page. The page will revert to normal WordPress rendering.
+Uncheck **"Activar Carga de Pagina Estatica"**, generate again, or simply delete the file at `wp-content/uploads/STPA/page-{id}.html`.
 
 ### Regenerate
 
-Click **"Generar Pagina Estatica y Guardar"** again at any time to regenerate the static HTML with the latest content and options.
+Click **"Generar Pagina Estatica y Guardar"** again at any time to overwrite the static HTML file.
 
 ---
 
 ## REST API
 
-The plugin registers custom REST API routes under the `STPA` namespace.
+All endpoints require both **`X-WP-Nonce`** and **`api-key`** headers. The API key is auto-generated on plugin activation (stored in `wp_options` under `STPA_API_KEY`).
 
-### `GET /wp-json/STPA/html/{id}`
+### `POST /wp-json/STPA/post-config/{id}`
 
-Returns the rendered page content (post content with `the_content` filter applied).
+Save the generation config (checkbox states) for a page.
+
+```json
+{
+  "config": {
+    "STPA_PAGE_STATIC_ACTIVE": true,
+    "STPA_PAGE_STATIC_CSS_EXTERNO": true,
+    "STPA_PAGE_STATIC_CSS_INTERNO": true
+  }
+}
+```
 
 ### `POST /wp-json/STPA/html/{id}`
 
-Save the generated static HTML for a page.
+Save the generated static HTML. The HTML is written to `wp-content/uploads/STPA/page-{id}.html`.
 
-**Authentication (choose one):**
-- **WordPress nonce:** send `X-WP-Nonce` header (for admin requests)
-- **API key:** send `api-key` header (for external/CI requests)
-
-**Request body:**
 ```json
 {
   "html": "<!DOCTYPE html>..."
@@ -95,34 +109,48 @@ Save the generated static HTML for a page.
 
 ```
 post.php (meta box UI)
-    ↓ config from checkboxes
-procesing-html.php (client-side processing)
-    ├── getCode()          — fetch page HTML via URL
-    ├── eliminarWpadminbar() — remove admin bar, fix margin
-    ├── convinarCssExterno() — download & inline external CSS
-    ├── convinarCssInterno() — collect & combine <style> tags
-    ├── cssMinfy()         — minify CSS (safe: no comma-in-string corruption)
-    ├── fixLazyImages()    — restore lazy-loaded images
-    └── htmlMinify()       — minify final HTML
-    ↓ POST /wp-json/STPA/html/{id}
-api/set-html.php            — saves HTML to post meta (STPA_PAGE_STATIC_HTML)
+    ↓ POST /wp-json/STPA/post-config/{id}
+api/set-post-config.php     — saves config to post meta
     ↓
-hook/template_redirect.php  — serves static HTML, exits early
+procesing-html.php (client-side JS processing)
+    ├── getCode()              — fetch page HTML via URL (?STPA_DISABLE=1)
+    ├── eliminarWpadminbar()   — remove #wpadminbar, fix top margin
+    ├── convinarCssExterno()   — download & inline <link> CSS, minify
+    ├── convinarCssInterno()   — collect & combine <style> tags
+    ├── cssMinfy()             — minify CSS (safe: no comma-in-string corruption)
+    ├── fixLazyImages()        — restore lazy-loaded images
+    └── htmlMinify()           — minify final HTML
+    ↓ POST /wp-json/STPA/html/{id}
+api/set-html.php            — writes HTML to wp-content/uploads/STPA/page-{id}.html
+    ↓
+hook/template_redirect.php  — reads file & serves it, exits early
 ```
 
 ---
 
-## API Endpoints (internal classes)
+## File Storage
+
+Generated static files are stored at:
+
+```
+wp-content/uploads/STPA/page-{id}.html
+```
+
+This directory is created automatically on first generation. Files are served directly via `file_get_contents()` when the page is requested and the static feature is active.
+
+---
+
+## Internal Classes
 
 | Class | Route | Method | Purpose |
 |-------|-------|--------|---------|
-| `STPA_API_GET_HTML` | `/html/(?P<id>\d+)` | GET | Return page content as HTML |
-| `STPA_API_SET_HTML` | `/html/(?P<id>\d+)` | POST | Save generated static HTML |
+| `STPA_API_SET_POST_CONFIG` | `/post-config/(?P<id>\d+)` | POST | Save page generation config |
+| `STPA_API_SET_HTML` | `/html/(?P<id>\d+)` | POST | Save generated static HTML to file |
 
 Both extend `STPA_API` which provides:
-- API key generation & validation (`getApiKey()` / `validateApiKey()`)
-- User authentication via WordPress nonce (`validateUser()`)
-- Endpoint-specific validation (`validateEnpoint()`)
+- API key validation (`validateApiKey()`)
+- WordPress nonce validation (`validateUser()`)
+- Endpoint-specific permission checks (`validateEnpoint()`)
 
 ---
 
