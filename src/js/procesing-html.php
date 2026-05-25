@@ -155,6 +155,122 @@
     return cssMinfy(css);
   }
 
+  function purgeCss(css, doc) {
+    function cleanSelectorForTest(selector) {
+      return selector
+        .replace(/::[\w-]+(\([^)]*\))?/g, "")
+        .replace(/:[\w-]+\([^)]*\)/g, "")
+        .replace(/:[\w-]+/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function isSelectorUsed(selector) {
+      const testSelector = cleanSelectorForTest(selector);
+      if (!testSelector || !/[a-zA-Z0-9_\-\[\].#*]/.test(testSelector)) {
+        return true;
+      }
+      try {
+        return doc.querySelector(testSelector) !== null;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function parse(input) {
+      let result = "";
+      let i = 0;
+
+      function readUntilChars(stops) {
+        let out = "";
+        let inStr = false, q = "";
+        while (i < input.length) {
+          const c = input[i];
+          if (inStr) {
+            out += c; i++;
+            if (c === q) inStr = false;
+          } else if (c === '"' || c === "'") {
+            inStr = true; q = c; out += c; i++;
+          } else if (stops.indexOf(c) !== -1) {
+            break;
+          } else {
+            out += c; i++;
+          }
+        }
+        return out;
+      }
+
+      function readBlock() {
+        let out = input[i]; // '{'
+        i++;
+        let depth = 1;
+        let inStr = false, q = "";
+        while (i < input.length) {
+          const c = input[i++];
+          if (inStr) {
+            out += c;
+            if (c === q) inStr = false;
+          } else if (c === '"' || c === "'") {
+            inStr = true; q = c; out += c;
+          } else if (c === "{") {
+            depth++; out += c;
+          } else if (c === "}") {
+            depth--; out += c;
+            if (depth === 0) return out;
+          } else {
+            out += c;
+          }
+        }
+        return out;
+      }
+
+      while (i < input.length) {
+        while (i < input.length && /\s/.test(input[i])) i++;
+        if (i >= input.length) break;
+
+        if (input[i] === "@") {
+          const atRule = readUntilChars(["{", ";"]);
+          if (i >= input.length) { result += atRule; break; }
+
+          if (input[i] === ";") {
+            result += atRule + ";";
+            i++;
+          } else if (input[i] === "{") {
+            const keyword = atRule.trim().split(/[\s(]/)[0].toLowerCase();
+            const block = readBlock();
+            const keepAlways = [
+              "@keyframes", "@-webkit-keyframes", "@-moz-keyframes",
+              "@-o-keyframes", "@font-face", "@counter-style", "@layer",
+            ];
+            if (keepAlways.includes(keyword)) {
+              result += atRule + block;
+            } else if (keyword === "@media" || keyword === "@supports") {
+              const inner = block.slice(1, -1);
+              const purgedInner = parse(inner);
+              if (purgedInner.trim()) {
+                result += atRule + "{" + purgedInner + "}";
+              }
+            } else {
+              result += atRule + block;
+            }
+          }
+        } else {
+          const selector = readUntilChars(["{"]);
+          if (i >= input.length) { result += selector; break; }
+          const block = readBlock();
+          const trimmed = selector.trim();
+          if (trimmed && isSelectorUsed(trimmed)) {
+            result += selector + block;
+          }
+        }
+      }
+
+      return result;
+    }
+
+    return parse(css);
+  }
+
   function convinarCssInterno(doc) {
     const styles = doc.querySelectorAll("style");
 
@@ -360,7 +476,7 @@
    * - Descarga el contenido
    * - Reemplaza por <style> y <script>
    */
-  async function procesingHtml(html, baseUrl = window.location.href, config = {}) {
+  async function procesingHtml(html, baseUrl = window.location.href, config = {}, cssHref = null) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     eliminarWpadminbar(doc);
@@ -379,12 +495,26 @@
     }
 
     css = css.trim();
+    if (css && config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_PURGE) {
+      css = cssMinfy(css);
+      css = purgeCss(css, doc);
+      css = css.trim();
+    }
     if (css) {
-      const style = doc.createElement("style");
       const imports = css.match(/@import[^;]+;/g) || [];
       const rest = css.replace(/@import[^;]+;/g, "");
-      style.textContent = imports.join("") + "\n" + rest;
-      doc.head.appendChild(style);
+      css = imports.join("") + "\n" + rest;
+
+      if (cssHref) {
+        const link = doc.createElement("link");
+        link.rel = "stylesheet";
+        link.href = cssHref;
+        doc.head.appendChild(link);
+      } else {
+        const style = doc.createElement("style");
+        style.textContent = css;
+        doc.head.appendChild(style);
+      }
     }
 
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO) {
@@ -395,6 +525,6 @@
     }
     fixLazyImages(doc);
 
-    return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    return { html: "<!DOCTYPE html>\n" + doc.documentElement.outerHTML, css };
   }
 </script>

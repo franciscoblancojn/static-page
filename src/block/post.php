@@ -6,6 +6,7 @@ class STPA_PAGE_CONFIG
     const KEY_ACTIVE = STPA_KEY . '_PAGE_STATIC_ACTIVE';
     const KEY_CSS_EXTERNO = STPA_KEY . '_PAGE_STATIC_CSS_EXTERNO';
     const KEY_CSS_INTERNO = STPA_KEY . '_PAGE_STATIC_CSS_INTERNO';
+    const KEY_CSS_PURGE = STPA_KEY . '_PAGE_STATIC_CSS_PURGE';
     const KEY_JS_EXTERNO = STPA_KEY . '_PAGE_STATIC_JS_EXTERNO';
     const KEY_JS_INTERNO = STPA_KEY . '_PAGE_STATIC_JS_INTERNO';
     const KEY_HTML = STPA_KEY . '_PAGE_STATIC_HTML';
@@ -15,6 +16,7 @@ class STPA_PAGE_CONFIG
         self::KEY_ACTIVE => "Activar Carga de Pagina Estatica",
         self::KEY_CSS_EXTERNO => "Procesar CSS Externo",
         self::KEY_CSS_INTERNO => "Procesar CSS Interno",
+        self::KEY_CSS_PURGE => "Eliminar CSS No Usado",
         self::KEY_JS_EXTERNO  => "Procesar JS Externo (Beta)",
         self::KEY_JS_INTERNO => "Procesar JS Interno (Beta)",
     ];
@@ -49,6 +51,8 @@ class STPA_PAGE_CONFIG
 
         $config = get_post_meta($post->ID, self::KEY_CONFIG, true);
         $url = get_permalink($post->ID);
+        $upload_dir = wp_upload_dir();
+        $css_url = $upload_dir['baseurl'] . '/' . STPA_KEY . '/page-' . $post->ID . '.css';
         foreach (
             self::CONFIG as $key => $value
         ) {
@@ -119,12 +123,13 @@ class STPA_PAGE_CONFIG
 
                         const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
                         const html = await getCode(url);
-                        const finalHtml = await procesingHtml(html, url, config);
+                        const { html: finalHtml, css: finalCss } = await procesingHtml(html, url, config, "<?= $css_url ?>");
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
                             headers,
                             body: JSON.stringify({
-                                html: finalHtml
+                                html: finalHtml,
+                                css: finalCss
                             })
                         });
                         const data = await response.json();
