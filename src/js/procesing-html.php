@@ -156,6 +156,51 @@
   }
 
   function purgeCss(css, doc) {
+    // Colectar tokens de JS inline y data-* para detectar clases agregadas dinámicamente
+    const jsTokens = new Set();
+
+    const JS_PURGE_VALID_TYPES = ["", "text/javascript", "application/javascript"];
+    const jsContent = [...doc.querySelectorAll("script")]
+      .filter(function(s) {
+        return JS_PURGE_VALID_TYPES.includes((s.getAttribute("type") || "").toLowerCase());
+      })
+      .map(function(s) { return s.textContent || ""; })
+      .join(" ");
+
+    const stringRe = /["'`]([^"'`\n\r\\]{1,300})["'`]/g;
+    let sm;
+    while ((sm = stringRe.exec(jsContent)) !== null) {
+      sm[1].split(/[^a-zA-Z0-9_-]+/).forEach(function(token) {
+        if (/^-?[a-zA-Z][a-zA-Z0-9_-]{1,80}$/.test(token)) {
+          jsTokens.add(token);
+        }
+      });
+    }
+
+    // Escanear atributos data-* (data-toggle, data-class, data-target, etc.)
+    doc.querySelectorAll("*").forEach(function(el) {
+      [...el.attributes].forEach(function(attr) {
+        if (attr.name.startsWith("data-")) {
+          attr.value.split(/\s+/).forEach(function(token) {
+            const clean = token.replace(/^[.#]/, "");
+            if (/^-?[a-zA-Z][a-zA-Z0-9_-]{1,80}$/.test(clean)) {
+              jsTokens.add(clean);
+            }
+          });
+        }
+      });
+    });
+
+    function selectorMentionedInJs(selector) {
+      const tokens = [];
+      let m;
+      const clsRe = /\.(-?[a-zA-Z][\w-]*)/g;
+      const idRe = /#([a-zA-Z][\w-]*)/g;
+      while ((m = clsRe.exec(selector)) !== null) tokens.push(m[1]);
+      while ((m = idRe.exec(selector)) !== null) tokens.push(m[1]);
+      return tokens.some(function(t) { return jsTokens.has(t); });
+    }
+
     function cleanSelectorForTest(selector) {
       return selector
         .replace(/::[\w-]+(\([^)]*\))?/g, "")
@@ -166,6 +211,7 @@
     }
 
     function isSelectorUsed(selector) {
+      if (selectorMentionedInJs(selector)) return true;
       const testSelector = cleanSelectorForTest(selector);
       if (!testSelector || !/[a-zA-Z0-9_\-\[\].#*]/.test(testSelector)) {
         return true;
