@@ -45,8 +45,12 @@ class STPA_API_SET_HTML extends STPA_API
 
         $css = $request->get_param('css');
         if (!is_null($css) && $css !== '') {
-            $cssFile = $dir . "/page-{$post_id}.css";
-            file_put_contents($cssFile, $css);
+            file_put_contents($dir . "/page-{$post_id}.css", $css);
+        }
+
+        $js = $request->get_param('js');
+        if (!is_null($js) && $js !== '') {
+            file_put_contents($dir . "/page-{$post_id}.js", $js);
         }
 
         return [

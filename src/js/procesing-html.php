@@ -183,18 +183,24 @@
 
       function readUntilChars(stops) {
         let out = "";
-        let inStr = false, q = "";
+        let inStr = false,
+          q = "";
         while (i < input.length) {
           const c = input[i];
           if (inStr) {
-            out += c; i++;
+            out += c;
+            i++;
             if (c === q) inStr = false;
           } else if (c === '"' || c === "'") {
-            inStr = true; q = c; out += c; i++;
+            inStr = true;
+            q = c;
+            out += c;
+            i++;
           } else if (stops.indexOf(c) !== -1) {
             break;
           } else {
-            out += c; i++;
+            out += c;
+            i++;
           }
         }
         return out;
@@ -204,18 +210,23 @@
         let out = input[i]; // '{'
         i++;
         let depth = 1;
-        let inStr = false, q = "";
+        let inStr = false,
+          q = "";
         while (i < input.length) {
           const c = input[i++];
           if (inStr) {
             out += c;
             if (c === q) inStr = false;
           } else if (c === '"' || c === "'") {
-            inStr = true; q = c; out += c;
+            inStr = true;
+            q = c;
+            out += c;
           } else if (c === "{") {
-            depth++; out += c;
+            depth++;
+            out += c;
           } else if (c === "}") {
-            depth--; out += c;
+            depth--;
+            out += c;
             if (depth === 0) return out;
           } else {
             out += c;
@@ -230,7 +241,10 @@
 
         if (input[i] === "@") {
           const atRule = readUntilChars(["{", ";"]);
-          if (i >= input.length) { result += atRule; break; }
+          if (i >= input.length) {
+            result += atRule;
+            break;
+          }
 
           if (input[i] === ";") {
             result += atRule + ";";
@@ -256,7 +270,10 @@
           }
         } else {
           const selector = readUntilChars(["{"]);
-          if (i >= input.length) { result += selector; break; }
+          if (i >= input.length) {
+            result += selector;
+            break;
+          }
           const block = readBlock();
           const trimmed = selector.trim();
           if (trimmed && isSelectorUsed(trimmed)) {
@@ -287,115 +304,59 @@
   }
 
   function shouldIgnoreScript(script, jsUrl) {
-    // atributos peligrosos
-    if (
-      script.type === "module" ||
-      script.defer ||
-      script.async
-    ) {
-      // return true;
-    }
+    const type = (script.getAttribute("type") || "").toLowerCase();
+    if (type === "module") return true;
+    if (script.defer || script.async) return true;
 
-    const blacklist = [
-      "elementor",
-      ".min.js",
-    ];
-
+    const blacklist = ["elementor", ".min.js"];
     return blacklist.some((item) =>
       jsUrl.toLowerCase().includes(item.toLowerCase())
     );
   }
-  async function convinarJsExterno(doc, baseUrl) {
-    const scripts = [...doc.querySelectorAll("script[src]")];
 
+  const JS_VALID_TYPES = ["", "text/javascript", "application/javascript"];
+
+  async function combinarJs(doc, baseUrl, processExternal, processInternal) {
+    const allScripts = [...doc.querySelectorAll("script")];
     let combinedJs = "";
 
-    for (const script of scripts) {
+    for (const script of allScripts) {
       const src = script.getAttribute("src");
+      const type = (script.getAttribute("type") || "").toLowerCase();
 
-      if (!src) continue;
+      // ignorar tipos no-JS: JSON-LD, module, etc.
+      if (!JS_VALID_TYPES.includes(type)) continue;
 
-      try {
-        const jsUrl = toAbsoluteUrl(src, baseUrl);
-
-        if (!isWpContent(jsUrl)) {
+      if (src) {
+        if (!processExternal) continue;
+        try {
+          const jsUrl = toAbsoluteUrl(src, baseUrl);
+          if (!isWpContent(jsUrl)) continue;
+          if (shouldIgnoreScript(script, jsUrl)) {
+            console.log("JS IGNORADO:", jsUrl);
+            continue;
+          }
+          console.log("JS:", jsUrl);
+          let jsCode = await getCode(jsUrl);
+          jsCode = jsCode.replace(/\/\/# sourceMappingURL=.*$/gm, "");
+          combinedJs += "\n;\n" + jsCode;
+          script.remove();
+        } catch (e) {
+          console.error("Error JS:", src, e);
+        }
+      } else {
+        if (!processInternal) continue;
+        const js = script.textContent || "";
+        if (!js.trim()) {
+          script.remove();
           continue;
         }
-
-        if (shouldIgnoreScript(script, jsUrl)) {
-          console.log("IGNORADO:", jsUrl);
-          continue;
-        }
-
-        console.log("JS:", jsUrl);
-
-        let jsCode = await getCode(jsUrl);
-
-        // eliminar sourcemaps
-        jsCode = jsCode.replace(
-          /\/\/# sourceMappingURL=.*$/gm,
-          ""
-        );
-
-        combinedJs += `
-            ;
-            ${jsCode}
-            ;
-        `;
-
+        combinedJs += "\n;\n" + js;
         script.remove();
-      } catch (e) {
-        console.error("Error JS:", src, e);
       }
     }
 
-    if (combinedJs.trim()) {
-      const newScript = doc.createElement("script");
-
-      // SIN regex minify
-      newScript.textContent = combinedJs;
-
-      doc.body.appendChild(newScript);
-    }
-  }
-
-  function convinarJsInterno(doc) {
-    /**
-     * =========================
-     * COMBINAR JS INTERNOS
-     * =========================
-     */
-    const internalScripts = [...doc.querySelectorAll("script:not([src])")];
-
-    let internalJs = "";
-
-    for (const script of internalScripts) {
-      const js = script.textContent || "";
-
-      // ignorar scripts vacíos
-      if (!js.trim()) {
-        script.remove();
-        continue;
-      }
-
-      internalJs += "\n;\n" + js;
-
-      // eliminar script original
-      script.remove();
-    }
-
-    /**
-     * =========================
-     * CREAR SCRIPT FINAL
-     * =========================
-     */
-    if (internalJs.trim()) {
-      const finalScript = doc.createElement("script");
-
-      finalScript.textContent = jsMinify(internalJs);
-
-      doc.body.appendChild(finalScript);
-    }
+    return combinedJs.trim();
   }
 
   function eliminarWpadminbar(doc) {
@@ -476,7 +437,7 @@
    * - Descarga el contenido
    * - Reemplaza por <style> y <script>
    */
-  async function procesingHtml(html, baseUrl = window.location.href, config = {}, cssHref = null) {
+  async function procesingHtml(html, baseUrl = window.location.href, config = {}, cssHref = null, jsHref = null) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     eliminarWpadminbar(doc);
@@ -517,14 +478,30 @@
       }
     }
 
-    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO) {
-      await convinarJsExterno(doc, baseUrl);
+    const processJsExterno = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO ?? false;
+    const processJsInterno = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_INTERNO ?? false;
+
+    let js = "";
+    if (processJsExterno || processJsInterno) {
+      js = await combinarJs(doc, baseUrl, processJsExterno, processJsInterno);
     }
-    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_INTERNO) {
-      convinarJsInterno(doc);
+
+    if (js) {
+      const scriptTag = doc.createElement("script");
+      if (jsHref) {
+        scriptTag.src = jsHref;
+      } else {
+        scriptTag.textContent = js;
+      }
+      doc.body.appendChild(scriptTag);
     }
+
     fixLazyImages(doc);
 
-    return { html: "<!DOCTYPE html>\n" + doc.documentElement.outerHTML, css };
+    return {
+      html: "<!DOCTYPE html>\n" + doc.documentElement.outerHTML,
+      css,
+      js
+    };
   }
 </script>

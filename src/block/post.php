@@ -7,8 +7,10 @@ class STPA_PAGE_CONFIG
     const KEY_CSS_EXTERNO = STPA_KEY . '_PAGE_STATIC_CSS_EXTERNO';
     const KEY_CSS_INTERNO = STPA_KEY . '_PAGE_STATIC_CSS_INTERNO';
     const KEY_CSS_PURGE = STPA_KEY . '_PAGE_STATIC_CSS_PURGE';
+    const KEY_CSS_FILE = STPA_KEY . '_PAGE_STATIC_CSS_FILE';
     const KEY_JS_EXTERNO = STPA_KEY . '_PAGE_STATIC_JS_EXTERNO';
     const KEY_JS_INTERNO = STPA_KEY . '_PAGE_STATIC_JS_INTERNO';
+    const KEY_JS_FILE = STPA_KEY . '_PAGE_STATIC_JS_FILE';
     const KEY_HTML = STPA_KEY . '_PAGE_STATIC_HTML';
     const KEY_HTML_FILE = STPA_KEY . '_PAGE_STATIC_HTML_FILE';
 
@@ -17,8 +19,10 @@ class STPA_PAGE_CONFIG
         self::KEY_CSS_EXTERNO => "Procesar CSS Externo",
         self::KEY_CSS_INTERNO => "Procesar CSS Interno",
         self::KEY_CSS_PURGE => "Eliminar CSS No Usado",
+        self::KEY_CSS_FILE => "Generar CSS Externo",
         self::KEY_JS_EXTERNO  => "Procesar JS Externo (Beta)",
         self::KEY_JS_INTERNO => "Procesar JS Interno (Beta)",
+        self::KEY_JS_FILE => "Generar JS Externo",
     ];
 
     public static function init()
@@ -53,6 +57,7 @@ class STPA_PAGE_CONFIG
         $url = get_permalink($post->ID);
         $upload_dir = wp_upload_dir();
         $css_url = $upload_dir['baseurl'] . '/' . STPA_KEY . '/page-' . $post->ID . '.css';
+        $js_url = $upload_dir['baseurl'] . '/' . STPA_KEY . '/page-' . $post->ID . '.js';
         foreach (
             self::CONFIG as $key => $value
         ) {
@@ -123,13 +128,16 @@ class STPA_PAGE_CONFIG
 
                         const url = "<?= $url ?>?<?= STPA_KEY . "_DISABLE" ?>=1";
                         const html = await getCode(url);
-                        const { html: finalHtml, css: finalCss } = await procesingHtml(html, url, config, "<?= $css_url ?>");
+                        const cssHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE ? "<?= $css_url ?>" : null;
+                        const jsHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE ? "<?= $js_url ?>" : null;
+                        const { html: finalHtml, css: finalCss, js: finalJs } = await procesingHtml(html, url, config, cssHref, jsHref);
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
                             headers,
                             body: JSON.stringify({
                                 html: finalHtml,
-                                css: finalCss
+                                css: finalCss,
+                                js: finalJs
                             })
                         });
                         const data = await response.json();
