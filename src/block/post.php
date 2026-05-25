@@ -55,9 +55,8 @@ class STPA_PAGE_CONFIG
 
         $config = get_post_meta($post->ID, self::KEY_CONFIG, true);
         $url = get_permalink($post->ID);
-        $upload_dir = wp_upload_dir();
-        $css_url = $upload_dir['baseurl'] . '/' . STPA_KEY . '/page-' . $post->ID . '.css';
-        $js_url = $upload_dir['baseurl'] . '/' . STPA_KEY . '/page-' . $post->ID . '.js';
+        $css_url = home_url('/?' . STPA_KEY . '_ASSET=page-' . $post->ID . '.css');
+        $js_url  = home_url('/?' . STPA_KEY . '_ASSET=page-' . $post->ID . '.js');
         foreach (
             self::CONFIG as $key => $value
         ) {
