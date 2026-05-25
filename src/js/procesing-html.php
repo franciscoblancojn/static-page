@@ -395,8 +395,6 @@
     }
     fixLazyImages(doc);
 
-    return htmlMinify(
-      "<!DOCTYPE html>\n" + doc.documentElement.outerHTML,
-    );
+    return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
   }
 </script>
