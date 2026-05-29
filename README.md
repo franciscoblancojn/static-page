@@ -6,7 +6,7 @@ Generate optimized static HTML files from your WordPress pages. Inlines CSS, rem
 **Tags:** static page, performance, cache, optimization, elementor  
 **Requires at least:** 5.0  
 **Tested up to:** 6.0  
-**Stable tag:** 1.3.5
+**Stable tag:** 1.4.0
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,8 @@ Static Page converts your WordPress pages into **standalone static HTML files** 
 - **Lazy image restoration** — replaces `data-src`, `data-lazy-src`, etc. with real `src` attributes
 - **HTML minification** — removes HTML comments, whitespace, and newlines
 - **Elementor compatibility** — respects Elementor edit/preview modes and `?action=elementor`
+- **CSS/JS ignore** — select specific CSS or JS files to exclude from processing; ignored files are removed from the final HTML
+- **`<a tabindex="0">` to `<span>`** — automatically replaces anchor tags with `tabindex="0"` by semantic `<span>` elements
 - **Disable query param** — append `?STPA_DISABLE=1` to view the original WordPress-rendered page
 - **REST API authentication** — requires both `X-WP-Nonce` and `api-key` headers
 
@@ -48,18 +50,25 @@ Static Page converts your WordPress pages into **standalone static HTML files** 
 ### Generate a Static Page
 
 1. Edit any **Page** in WordPress
-2. In the sidebar meta box **"Configuración Pagina Estatica"**, check the options you want:
+2. In the meta box **"Configuración Pagina Estatica"** (below the editor), check the options you want:
    - **Activar Carga de Pagina Estatica** — required, enables static page serving
-   - **Procesar CSS Externo** — inline all `<link rel="stylesheet">` from `wp-content/`
-   - **Procesar CSS Interno** — combine all `<style>` tags into one
-   - **Procesar JS Externo (Beta)** — inline external JavaScript files
-   - **Procesar JS Interno (Beta)** — combine inline scripts
+   - Expand **Configuración de CSS** to access:
+     - **Procesar CSS Externo** — inline all `<link rel="stylesheet">` from `wp-content/`
+     - **Procesar CSS Interno** — combine all `<style>` tags into one
+     - **Eliminar CSS No Usado** — purge unused CSS rules from the combined stylesheet
+     - **Generar CSS Externo** — save CSS as a separate file instead of inlining
+     - **Ignorar CSS** — select specific CSS files to exclude; they are removed from the final HTML
+   - Expand **Configuración de JS** to access:
+     - **Procesar JS Externo (Beta)** — inline external JavaScript files
+     - **Procesar JS Interno (Beta)** — combine inline scripts
+     - **Generar JS Externo** — save JS as a separate file instead of inlining
+     - **Ignorar JS** — select specific JS files to exclude; they are removed from the final HTML
 3. Click **"Generar Pagina Estatica y Guardar"**
 
 The plugin will:
 1. Save the config via `POST /wp-json/STPA/post-config/{id}`
 2. Fetch the page HTML with `?STPA_DISABLE=1` (bypasses static serving)
-3. Process the HTML (inline CSS, minify, remove admin bar, fix images)
+3. Process the HTML (inline CSS, minify, remove admin bar, fix images, replace `<a tabindex="0">` with `<span>`)
 4. Save the final HTML to `wp-content/uploads/STPA/page-{id}.html`
 5. Reload the page
 
@@ -88,7 +97,11 @@ Save the generation config (checkbox states) for a page.
   "config": {
     "STPA_PAGE_STATIC_ACTIVE": true,
     "STPA_PAGE_STATIC_CSS_EXTERNO": true,
-    "STPA_PAGE_STATIC_CSS_INTERNO": true
+    "STPA_PAGE_STATIC_CSS_INTERNO": true,
+    "STPA_PAGE_STATIC_CSS_IGNORE": true,
+    "STPA_PAGE_STATIC_CSS_IGNORE_LIST": ["https://example.com/wp-content/themes/theme/style.css"],
+    "STPA_PAGE_STATIC_JS_IGNORE": true,
+    "STPA_PAGE_STATIC_JS_IGNORE_LIST": ["https://example.com/wp-content/plugins/plugin/script.js"]
   }
 }
 ```
@@ -115,10 +128,12 @@ api/set-post-config.php     — saves config to post meta
 procesing-html.php (client-side JS processing)
     ├── getCode()              — fetch page HTML via URL (?STPA_DISABLE=1)
     ├── eliminarWpadminbar()   — remove #wpadminbar, fix top margin
+    ├── removeIgnoredAssets()  — remove ignored CSS/JS from DOM unconditionally
     ├── convinarCssExterno()   — download & inline <link> CSS, minify
     ├── convinarCssInterno()   — collect & combine <style> tags
     ├── cssMinfy()             — minify CSS (safe: no comma-in-string corruption)
     ├── fixLazyImages()        — restore lazy-loaded images
+    ├── replaceAnchorsWithTabindexZero() — convert <a tabindex="0"> to <span>
     └── htmlMinify()           — minify final HTML
     ↓ POST /wp-json/STPA/html/{id}
 api/set-html.php            — writes HTML to wp-content/uploads/STPA/page-{id}.html
