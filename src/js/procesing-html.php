@@ -129,7 +129,7 @@
   function toAbsoluteUrl(url, baseUrl) {
     return new URL(url, baseUrl).href;
   }
-  async function convinarCssExterno(doc, baseUrl) {
+  async function convinarCssExterno(doc, baseUrl, ignoreList = []) {
     const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
     let css = "";
@@ -141,9 +141,10 @@
       try {
         const cssUrl = toAbsoluteUrl(href, baseUrl);
 
-        // if (!isWpContent(cssUrl)) {
-        //   continue;
-        // }
+        if (ignoreList.some(function(ignored) { return cssUrl.includes(ignored) || href.includes(ignored) })) {
+          link.remove();
+          continue;
+        }
 
         css += "\n" + await getCode(cssUrl);
         link.remove();
@@ -376,7 +377,7 @@
 
   const JS_VALID_TYPES = ["", "text/javascript", "application/javascript"];
 
-  async function combinarJs(doc, baseUrl, processExternal, processInternal) {
+  async function combinarJs(doc, baseUrl, processExternal, processInternal, ignoreList = []) {
     const allScripts = [...doc.querySelectorAll("script")];
     let combinedJs = "";
 
@@ -391,6 +392,12 @@
         if (!processExternal) continue;
         try {
           const jsUrl = toAbsoluteUrl(src, baseUrl);
+
+          if (ignoreList.some(function(ignored) { return jsUrl.includes(ignored) || src.includes(ignored) })) {
+            script.remove();
+            continue;
+          }
+
           if (!isWpContent(jsUrl)) continue;
           if (shouldIgnoreScript(script, jsUrl)) {
             console.log("JS IGNORADO:", jsUrl);
@@ -491,6 +498,34 @@
     }
   }
   /**
+   * Elimina del DOM los <link> y <script> que estén en las listas de ignorados,
+   * independientemente de si el procesamiento de CSS/JS está activo.
+   */
+  function removeIgnoredAssets(doc, baseUrl, cssIgnoreList, jsIgnoreList) {
+    if (cssIgnoreList && cssIgnoreList.length) {
+      var links = doc.querySelectorAll('link[rel="stylesheet"]');
+      for (var i = 0; i < links.length; i++) {
+        var href = links[i].getAttribute("href");
+        if (!href) continue;
+        var absUrl = toAbsoluteUrl(href, baseUrl);
+        if (cssIgnoreList.some(function(ignored) { return absUrl.includes(ignored) || href.includes(ignored) })) {
+          links[i].remove();
+        }
+      }
+    }
+    if (jsIgnoreList && jsIgnoreList.length) {
+      var scripts = doc.querySelectorAll('script[src]');
+      for (var i = 0; i < scripts.length; i++) {
+        var src = scripts[i].getAttribute("src");
+        if (!src) continue;
+        var absUrl = toAbsoluteUrl(src, baseUrl);
+        if (jsIgnoreList.some(function(ignored) { return absUrl.includes(ignored) || src.includes(ignored) })) {
+          scripts[i].remove();
+        }
+      }
+    }
+  }
+  /**
    * Reemplaza <a tabindex="0"> por <span>
    */
   function replaceAnchorsWithTabindexZero(doc) {
@@ -526,8 +561,13 @@
 
     let css = "";
 
+    const cssIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE_LIST || [];
+    const jsIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE_LIST || [];
+
+    removeIgnoredAssets(doc, baseUrl, cssIgnoreList, jsIgnoreList);
+
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO) {
-      css += await convinarCssExterno(doc, baseUrl);
+      css += await convinarCssExterno(doc, baseUrl, cssIgnoreList);
     }
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_INTERNO) {
       css += convinarCssInterno(doc);
@@ -561,7 +601,7 @@
 
     let js = "";
     if (processJsExterno || processJsInterno) {
-      js = await combinarJs(doc, baseUrl, processJsExterno, processJsInterno);
+      js = await combinarJs(doc, baseUrl, processJsExterno, processJsInterno, jsIgnoreList);
     }
 
     if (js) {
