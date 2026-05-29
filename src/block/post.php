@@ -48,7 +48,7 @@ class STPA_PAGE_CONFIG
             [self::class, 'render'],
             ['page'],
             'normal',
-            'low'
+            'high'
         );
     }
 
@@ -106,6 +106,31 @@ class STPA_PAGE_CONFIG
                 font-size: 12px;
                 color: #666;
                 margin-left: 16px;
+            }
+            .stpa-ignore-group {
+                margin-bottom: 6px;
+                padding: 4px 6px;
+                background: #f5f5f5;
+                border-radius: 3px;
+            }
+            .stpa-ignore-group-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-weight: 600;
+                font-size: 12px;
+                padding: 2px 0;
+                border-bottom: 1px solid #ddd;
+                margin-bottom: 4px;
+            }
+            .stpa-ignore-group-header input[type="checkbox"] {
+                margin: 0;
+            }
+            .stpa-ignore-group-items {
+                padding-left: 8px;
+            }
+            .stpa-ignore-group-items label {
+                font-size: 10px;
             }
         </style>
 
@@ -230,6 +255,11 @@ class STPA_PAGE_CONFIG
                     return config
                 }
 
+                const getGroupName = (url) => {
+                    const match = url.match(/\/wp-content\/(?:plugins|themes)\/([^/]+)/)
+                    return match ? match[1] : 'Otros'
+                }
+
                 const loadFileList = async (type) => {
                     const container = document.querySelector(`.stpa-ignore-items[data-type="${type}"]`)
                     const loading = document.querySelector(`.stpa-ignore-loading[data-type="${type}"]`)
@@ -239,6 +269,13 @@ class STPA_PAGE_CONFIG
 
                     if (!toggle?.checked) return
                     if (container.children.length > 0) return
+
+                    const updateHidden = () => {
+                        const checked = container.querySelectorAll('input.stpa-ignore-file:checked')
+                        const list = []
+                        checked.forEach(function(cb) { list.push(cb.value) })
+                        hiddenInput.value = JSON.stringify(list)
+                    }
 
                     loading.style.display = ''
                     try {
@@ -259,24 +296,56 @@ class STPA_PAGE_CONFIG
                                 if (src) files.push(src)
                             })
                         }
+
+                        const groups = {}
+                        files.forEach(function(file) {
+                            const group = getGroupName(file)
+                            if (!groups[group]) groups[group] = []
+                            groups[group].push(file)
+                        })
+
                         container.innerHTML = ''
-                        files.forEach(file => {
-                            const label = document.createElement('label')
-                            const cb = document.createElement('input')
-                            cb.type = 'checkbox'
-                            cb.checked = currentIgnoreList.includes(file)
-                            cb.addEventListener('change', () => {
-                                let list = JSON.parse(hiddenInput.value || '[]')
-                                if (cb.checked) {
-                                    if (!list.includes(file)) list.push(file)
-                                } else {
-                                    list = list.filter(f => f !== file)
-                                }
-                                hiddenInput.value = JSON.stringify(list)
+                        Object.keys(groups).sort().forEach(function(groupName) {
+                            const groupFiles = groups[groupName]
+                            const groupDiv = document.createElement('div')
+                            groupDiv.className = 'stpa-ignore-group'
+
+                            const header = document.createElement('div')
+                            header.className = 'stpa-ignore-group-header'
+
+                            const selectAll = document.createElement('input')
+                            selectAll.type = 'checkbox'
+                            selectAll.addEventListener('change', function() {
+                                const cbs = groupDiv.querySelectorAll('input.stpa-ignore-file')
+                                cbs.forEach(function(cb) { cb.checked = selectAll.checked })
+                                updateHidden()
                             })
-                            label.appendChild(cb)
-                            label.appendChild(document.createTextNode(' ' + file))
-                            container.appendChild(label)
+
+                            const title = document.createElement('span')
+                            title.textContent = groupName + ' (' + groupFiles.length + ')'
+
+                            header.appendChild(selectAll)
+                            header.appendChild(title)
+                            groupDiv.appendChild(header)
+
+                            const items = document.createElement('div')
+                            items.className = 'stpa-ignore-group-items'
+
+                            groupFiles.forEach(function(file) {
+                                const label = document.createElement('label')
+                                const cb = document.createElement('input')
+                                cb.type = 'checkbox'
+                                cb.className = 'stpa-ignore-file'
+                                cb.value = file
+                                cb.checked = currentIgnoreList.includes(file)
+                                cb.addEventListener('change', updateHidden)
+                                label.appendChild(cb)
+                                label.appendChild(document.createTextNode(' ' + file))
+                                items.appendChild(label)
+                            })
+
+                            groupDiv.appendChild(items)
+                            container.appendChild(groupDiv)
                         })
                     } catch (e) {
                         container.innerHTML = '<span style="color:red;">Error al cargar archivos</span>'
