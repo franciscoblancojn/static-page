@@ -141,9 +141,9 @@
       try {
         const cssUrl = toAbsoluteUrl(href, baseUrl);
 
-        if (!isWpContent(cssUrl)) {
-          continue;
-        }
+        // if (!isWpContent(cssUrl)) {
+        //   continue;
+        // }
 
         css += "\n" + await getCode(cssUrl);
         link.remove();
@@ -204,6 +204,8 @@
     function cleanSelectorForTest(selector) {
       return selector
         .replace(/::[\w-]+(\([^)]*\))?/g, "")
+        // [attr="val"], [attr~="val"], [attr^="val"], etc. → [attr]
+        .replace(/\[([^\]=~|^$*\s]+)[~|^$*]?=[^\]]*\]/g, "[$1]")
         .replace(/:[\w-]+\([^)]*\)/g, "")
         .replace(/:[\w-]+/g, "")
         .replace(/\s+/g, " ")
@@ -217,10 +219,22 @@
         return true;
       }
       try {
-        return doc.querySelector(testSelector) !== null;
+        if (doc.querySelector(testSelector) !== null) return true;
       } catch (e) {
         return true;
       }
+      // Full selector didn't match — may be a compound/stateful selector where
+      // a dynamic state class (added by JS) prevents matching the static DOM.
+      // Keep the rule if ANY individual class or ID atom exists in the DOM.
+      const atoms = testSelector.match(/[.#][a-zA-Z][a-zA-Z0-9_-]*/g) || [];
+      for (const atom of atoms) {
+        try {
+          if (doc.querySelector(atom) !== null) return true;
+        } catch (e) {
+          return true;
+        }
+      }
+      return false;
     }
 
     function parse(input) {
@@ -346,7 +360,7 @@
       style.remove();
     }
 
-    return css;
+    return cssMinfy(css);
   }
 
   function shouldIgnoreScript(script, jsUrl) {
