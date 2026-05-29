@@ -89,7 +89,7 @@ class STPA_PAGE_CONFIG
             .stpa-ignore-items {
                 margin-top: 6px;
                 margin-left: 16px;
-                max-height: 200px;
+                /* max-height: 200px; */
                 overflow-y: auto;
                 border: 1px solid #e5e5e5;
                 padding: 6px 8px;
@@ -141,7 +141,7 @@ class STPA_PAGE_CONFIG
             </label>
         </div>
 
-        <details class="stpa-collapsible" <?= self::isCssSectionOpen($config) ? 'open' : '' ?>>
+        <details class="stpa-collapsible" open>
             <summary>Configuración de CSS</summary>
             <div class="stpa-collapsible-content">
                 <div class="stpa-field">
@@ -182,7 +182,7 @@ class STPA_PAGE_CONFIG
             </div>
         </details>
 
-        <details class="stpa-collapsible" <?= self::isJsSectionOpen($config) ? 'open' : '' ?>>
+        <details class="stpa-collapsible" open>
             <summary>Configuración de JS</summary>
             <div class="stpa-collapsible-content">
                 <div class="stpa-field">
