@@ -3,7 +3,7 @@
 Plugin Name: Static Page
 Plugin URI: https://github.com/franciscoblancojn/static-page
 Description: It is an plugin of wordpress, for create static page of your pages.
-Version: 1.3.3
+Version: 1.3.4
 Author: franciscoblancojn
 Author URI: https://franciscoblanco.vercel.app/
 License: GPL2+
