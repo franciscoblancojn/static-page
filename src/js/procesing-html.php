@@ -491,6 +491,24 @@
     }
   }
   /**
+   * Reemplaza <a tabindex="0"> por <span>
+   */
+  function replaceAnchorsWithTabindexZero(doc) {
+    const anchors = doc.querySelectorAll('a[tabindex="0"]');
+    for (const anchor of anchors) {
+      const span = doc.createElement("span");
+      for (const attr of anchor.attributes) {
+        if (attr.name !== "tabindex" && attr.name !== "href" && attr.name !== "target" && attr.name !== "rel") {
+          span.setAttribute(attr.name, attr.value);
+        }
+      }
+      while (anchor.firstChild) {
+        span.appendChild(anchor.firstChild);
+      }
+      anchor.replaceWith(span);
+    }
+  }
+  /**
    * Procesa un HTML:
    * - Busca <link rel="stylesheet">
    * - Busca <script src="">
@@ -557,6 +575,8 @@
     }
 
     fixLazyImages(doc);
+
+    replaceAnchorsWithTabindexZero(doc);
 
     return {
       html: "<!DOCTYPE html>\n" + doc.documentElement.outerHTML,
