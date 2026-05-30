@@ -392,14 +392,13 @@ class STPA_PAGE_CONFIG
                         const cssHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE ? "<?= $css_url ?>" : null;
                         const jsHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE ? "<?= $js_url ?>" : null;
                         const { html: finalHtml, css: finalCss, js: finalJs } = await procesingHtml(html, url, config, cssHref, jsHref);
+                        const bodyData = { html: finalHtml };
+                        if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE && finalCss) bodyData.css = finalCss;
+                        if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE && finalJs) bodyData.js = finalJs;
                         const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
                             method: "POST",
                             headers,
-                            body: JSON.stringify({
-                                html: finalHtml,
-                                css: finalCss,
-                                js: finalJs
-                            })
+                            body: JSON.stringify(bodyData)
                         });
                         const data = await response.json();
                         if (!data.success) {
