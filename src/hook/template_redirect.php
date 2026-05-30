@@ -53,6 +53,7 @@ add_action('template_redirect', function () {
     if ($file && file_exists($file)) {
         status_header(200);
         header('Content-Type: text/html; charset=utf-8');
+        header('Content-Length: ' . filesize($file));
         echo file_get_contents($file);
         exit;
     }

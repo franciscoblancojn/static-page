@@ -69,6 +69,17 @@ class STPA_PAGE_CONFIG
         $jsIgnoreList = $config[self::KEY_JS_IGNORE_LIST] ?? [];
         $cssProcessList = $config[self::KEY_CSS_EXTERNO_PROCESS_LIST] ?? [];
         $jsProcessList = $config[self::KEY_JS_EXTERNO_PROCESS_LIST] ?? [];
+        $stpa_upload_dir = wp_upload_dir();
+        $stpa_file_dir = $stpa_upload_dir['basedir'] . '/' . STPA_KEY;
+        $stpa_html_file = $stpa_file_dir . "/page-{$post->ID}.html";
+        $stpa_css_file = $stpa_file_dir . "/page-{$post->ID}.css";
+        $stpa_js_file = $stpa_file_dir . "/page-{$post->ID}.js";
+        $stpa_file_size = function($f) {
+            if ($f && file_exists($f) && ($s = filesize($f)) > 0) {
+                return '(' . size_format($s) . ')';
+            }
+            return '';
+        };
         ?>
         <style>
             .stpa-collapsible {
@@ -270,9 +281,25 @@ class STPA_PAGE_CONFIG
         require_once STPA_DIR . 'src/js/procesing-html.php';
         ?>
 
-        <div class="content-btn" style="margin-top: 1rem;">
+        <div class="content-btn" style="margin-top: 1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <div id="btn-onGeneratePaginaEstatica" value="Guardar" class="button button-primary">
                 Generar Pagina Estatica y Guardar
+            </div>
+            <div id="btn-export-config" class="button">
+                Exportar Configuración
+            </div>
+            <div id="btn-import-config" class="button">
+                Importar Configuración
+            </div>
+            <input type="file" id="<?= STPA_KEY ?>-import-file" accept=".json" style="display:none;">
+            <div id="btn-download-html" class="button" data-url="<?= $url ?>">
+                Descargar HTML <span class="btn-size"><?= $stpa_file_size($stpa_html_file) ?></span>
+            </div>
+            <div id="btn-download-css" class="button" data-url="<?= $css_url ?>" style="display:<?= ($config[self::KEY_CSS_FILE] ?? false) ? 'inline-block' : 'none' ?>;">
+                Descargar CSS <span class="btn-size"><?= $stpa_file_size($stpa_css_file) ?></span>
+            </div>
+            <div id="btn-download-js" class="button" data-url="<?= $js_url ?>" style="display:<?= ($config[self::KEY_JS_FILE] ?? false) ? 'inline-block' : 'none' ?>;">
+                Descargar JS <span class="btn-size"><?= $stpa_file_size($stpa_js_file) ?></span>
             </div>
         </div>
         <div id="<?= STPA_KEY ?>-result"></div>
@@ -315,11 +342,13 @@ class STPA_PAGE_CONFIG
                     return match ? match[1] : 'Otros'
                 }
 
+                const stripQs = (u) => u.split('?')[0];
+
                 const loadFileList = async (type) => {
                     const container = document.querySelector(`.stpa-ignore-items[data-type="${type}"]`)
                     const loading = document.querySelector(`.stpa-ignore-loading[data-type="${type}"]`)
                     const hiddenInput = document.querySelector(`input.stpa-ignore-values[name^="<?= STPA_KEY ?>_PAGE_STATIC_${type.toUpperCase()}_IGNORE_LIST"]`)
-                    const currentIgnoreList = JSON.parse(hiddenInput?.value || '[]')
+                    const currentIgnoreList = JSON.parse(hiddenInput?.value || '[]').map(stripQs)
                     const toggle = document.querySelector(`.stpa-ignore-toggle[data-type="${type}"]`)
 
                     if (!toggle?.checked) return
@@ -342,13 +371,18 @@ class STPA_PAGE_CONFIG
                             const links = doc.querySelectorAll('link[rel="stylesheet"]')
                             links.forEach(link => {
                                 const href = link.getAttribute('href')
-                                if (href) files.push(href)
+                                if (href) files.push(stripQs(href))
                             })
                         } else {
                             const scripts = doc.querySelectorAll('script[src]')
                             scripts.forEach(script => {
                                 const src = script.getAttribute('src')
-                                if (src) files.push(src)
+                                if (src) files.push(stripQs(src))
+                            })
+                            const jsLinks = doc.querySelectorAll('link[as="script"]')
+                            jsLinks.forEach(link => {
+                                const href = link.getAttribute('href')
+                                if (href) files.push(stripQs(href))
                             })
                         }
 
@@ -412,10 +446,10 @@ class STPA_PAGE_CONFIG
                     const container = document.querySelector(`.stpa-process-items[data-type="${type}"]`)
                     const loading = document.querySelector(`.stpa-process-loading[data-type="${type}"]`)
                     const hiddenInput = document.querySelector(`input.stpa-process-values[name^="<?= STPA_KEY ?>_PAGE_STATIC_${type.toUpperCase()}_EXTERNO_PROCESS"]`)
-                    const currentProcessList = JSON.parse(hiddenInput?.value || '[]')
+                    const currentProcessList = JSON.parse(hiddenInput?.value || '[]').map(stripQs)
                     const toggle = document.querySelector(`.stpa-process-toggle[data-type="${type}"]`)
                     const ignoreHiddenInput = document.querySelector(`input.stpa-ignore-values[name^="<?= STPA_KEY ?>_PAGE_STATIC_${type.toUpperCase()}_IGNORE_LIST"]`)
-                    const currentIgnoreList = JSON.parse(ignoreHiddenInput?.value || '[]')
+                    const currentIgnoreList = JSON.parse(ignoreHiddenInput?.value || '[]').map(stripQs)
 
                     if (!toggle?.checked) return
                     if (container.children.length > 0) return
@@ -437,13 +471,18 @@ class STPA_PAGE_CONFIG
                             const links = doc.querySelectorAll('link[rel="stylesheet"]')
                             links.forEach(link => {
                                 const href = link.getAttribute('href')
-                                if (href) files.push(href)
+                                if (href) files.push(stripQs(href))
                             })
                         } else {
                             const scripts = doc.querySelectorAll('script[src]')
                             scripts.forEach(script => {
                                 const src = script.getAttribute('src')
-                                if (src) files.push(src)
+                                if (src) files.push(stripQs(src))
+                            })
+                            const jsLinks = doc.querySelectorAll('link[as="script"]')
+                            jsLinks.forEach(link => {
+                                const href = link.getAttribute('href')
+                                if (href) files.push(stripQs(href))
                             })
                         }
 
@@ -609,6 +648,96 @@ class STPA_PAGE_CONFIG
                     }
                 }
                 btn.addEventListener("click", onGeneratePaginaEstatica)
+
+                const exportBtn = document.getElementById("btn-export-config")
+                const importBtn = document.getElementById("btn-import-config")
+                const importFile = document.getElementById("<?= STPA_KEY ?>-import-file")
+
+                exportBtn.addEventListener("click", () => {
+                    const config = onGetConfig()
+                    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" })
+                    const a = document.createElement("a")
+                    a.href = URL.createObjectURL(blob)
+                    a.download = "static-page-config-<?= $post->ID ?>.json"
+                    a.click()
+                    URL.revokeObjectURL(a.href)
+                })
+
+                importBtn.addEventListener("click", () => {
+                    importFile.click()
+                })
+
+                importFile.addEventListener("change", (e) => {
+                    const file = e.target.files[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                        try {
+                            const config = JSON.parse(ev.target.result)
+                            Object.keys(config).forEach(function(key) {
+                                const input = document.querySelector(`[name='${key}']`)
+                                if (input && input.type === "checkbox") {
+                                    input.checked = !!config[key]
+                                }
+                                if (input && input.type === "hidden") {
+                                    input.value = JSON.stringify(config[key])
+                                }
+                            })
+                            document.querySelectorAll('.stpa-ignore-items').forEach(function(el) { el.innerHTML = '' })
+                            document.querySelectorAll('.stpa-process-items').forEach(function(el) { el.innerHTML = '' })
+                            document.querySelectorAll('.stpa-ignore-toggle').forEach(function(toggle) {
+                                if (toggle.checked) loadFileList(toggle.dataset.type)
+                            })
+                            document.querySelectorAll('.stpa-process-toggle').forEach(function(toggle) {
+                                if (toggle.checked) loadProcessList(toggle.dataset.type)
+                            })
+                            resultContent.textContent = "Configuración importada correctamente"
+                        } catch (err) {
+                            resultContent.textContent = "Error al importar configuración: " + err.message
+                        }
+                    }
+                    reader.readAsText(file)
+                    importFile.value = ""
+                })
+
+                const downloadFile = async (fetchUrl, filename) => {
+                    try {
+                        const resp = await fetch(fetchUrl)
+                        if (!resp.ok) throw new Error("Archivo no encontrado (" + resp.status + ")")
+                        const text = await resp.text()
+                        const blob = new Blob([text])
+                        const a = document.createElement("a")
+                        a.href = URL.createObjectURL(blob)
+                        a.download = filename
+                        a.click()
+                        URL.revokeObjectURL(a.href)
+                        resultContent.textContent = "Descargado: " + filename
+                    } catch (err) {
+                        resultContent.textContent = "Error al descargar: " + err.message + ". Genera la página primero."
+                    }
+                }
+
+                document.querySelectorAll('#btn-download-html, #btn-download-css, #btn-download-js').forEach(function(btn) {
+                    if (!btn) return
+                    btn.addEventListener("click", function() {
+                        var filename = 'page-<?= $post->ID ?>'
+                        if (this.id === 'btn-download-html') filename += '.html'
+                        else if (this.id === 'btn-download-css') filename += '.css'
+                        else if (this.id === 'btn-download-js') filename += '.js'
+                        downloadFile(this.dataset.url, filename)
+                    })
+                })
+
+                const toggleDownloadBtn = (checkbox, btn) => {
+                    if (!btn) return
+                    const update = () => { btn.style.display = checkbox.checked ? 'inline-block' : 'none' }
+                    checkbox.addEventListener('change', update)
+                    update()
+                }
+                var cssFileCheckbox = document.querySelector("[name='<?= self::KEY_CSS_FILE ?>']")
+                var jsFileCheckbox = document.querySelector("[name='<?= self::KEY_JS_FILE ?>']")
+                if (cssFileCheckbox) toggleDownloadBtn(cssFileCheckbox, document.getElementById("btn-download-css"))
+                if (jsFileCheckbox) toggleDownloadBtn(jsFileCheckbox, document.getElementById("btn-download-js"))
             }
             <?= STPA_KEY ?>_onLoad();
         </script>

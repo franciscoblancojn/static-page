@@ -40,6 +40,7 @@ class STPA_ASSETS
         header('Content-Type: ' . $content_type . '; charset=UTF-8');
         header('Cache-Control: public, max-age=31536000');
         header('X-Content-Type-Options: nosniff');
+        header('Content-Length: ' . filesize($file));
         readfile($file);
         exit;
     }

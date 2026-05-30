@@ -99,13 +99,6 @@
     );
   }
   /**
-   * Verifica si la URL pertenece a wp-content
-   */
-  function isWpContent(url) {
-    // return true;
-    return url.includes("/wp-content/");
-  }
-  /**
    * Obtiene el contenido de cualquier archivo desde una URL
    * Sirve para CSS, JS, HTML, etc.
    */
@@ -129,6 +122,9 @@
   function toAbsoluteUrl(url, baseUrl) {
     return new URL(url, baseUrl).href;
   }
+  function stripQueryString(url) {
+    return url.split('?')[0];
+  }
   async function convinarCssExterno(doc, baseUrl, ignoreList = [], processList = []) {
     const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
@@ -141,12 +137,12 @@
       try {
         const cssUrl = toAbsoluteUrl(href, baseUrl);
 
-        if (ignoreList.some(function(ignored) { return cssUrl.includes(ignored) || href.includes(ignored) })) {
+        if (ignoreList.some(function(ignored) { return stripQueryString(cssUrl).includes(stripQueryString(ignored)) || stripQueryString(href).includes(stripQueryString(ignored)) })) {
           link.remove();
           continue;
         }
 
-        if (processList.length > 0 && !processList.some(function(p) { return cssUrl.includes(p) || href.includes(p) })) {
+        if (processList.length > 0 && !processList.some(function(p) { return stripQueryString(cssUrl).includes(stripQueryString(p)) || stripQueryString(href).includes(stripQueryString(p)) })) {
           continue;
         }
 
@@ -397,16 +393,18 @@
         try {
           const jsUrl = toAbsoluteUrl(src, baseUrl);
 
-          if (ignoreList.some(function(ignored) { return jsUrl.includes(ignored) || src.includes(ignored) })) {
+          if (ignoreList.some(function(ignored) { return stripQueryString(jsUrl).includes(stripQueryString(ignored)) || stripQueryString(src).includes(stripQueryString(ignored)) })) {
             script.remove();
             continue;
           }
 
-          if (!isWpContent(jsUrl)) continue;
-          if (processList.length > 0 && !processList.some(function(p) { return jsUrl.includes(p) || src.includes(p) })) continue;
-          if (shouldIgnoreScript(script, jsUrl)) {
-            console.log("JS IGNORADO:", jsUrl);
-            continue;
+          if (processList.length > 0) {
+            if (!processList.some(function(p) { return stripQueryString(jsUrl).includes(stripQueryString(p)) || stripQueryString(src).includes(stripQueryString(p)) })) continue;
+          } else {
+            if (shouldIgnoreScript(script, jsUrl)) {
+              console.log("JS IGNORADO:", jsUrl);
+              continue;
+            }
           }
           console.log("JS:", jsUrl);
           let jsCode = await getCode(jsUrl);
@@ -425,6 +423,39 @@
         }
         combinedJs += "\n;\n" + js;
         script.remove();
+      }
+    }
+
+    // Process JS prefetch/preload links
+    var jsLinks = doc.querySelectorAll('link[as="script"]');
+    for (var li = 0; li < jsLinks.length; li++) {
+      var link = jsLinks[li];
+      var href = link.getAttribute("href");
+      if (!href) continue;
+      if (!processExternal) continue;
+      try {
+        var jsUrl = toAbsoluteUrl(href, baseUrl);
+
+        if (ignoreList.some(function(ignored) { return stripQueryString(jsUrl).includes(stripQueryString(ignored)) || stripQueryString(href).includes(stripQueryString(ignored)) })) {
+          link.remove();
+          continue;
+        }
+
+        if (processList.length > 0) {
+          if (!processList.some(function(p) { return stripQueryString(jsUrl).includes(stripQueryString(p)) || stripQueryString(href).includes(stripQueryString(p)) })) continue;
+        } else {
+          if (shouldIgnoreScript(link, jsUrl)) {
+            console.log("JS PREFETCH IGNORADO:", jsUrl);
+            continue;
+          }
+        }
+        console.log("JS PREFETCH:", jsUrl);
+        var jsCode = await getCode(jsUrl);
+        jsCode = jsCode.replace(/\/\/# sourceMappingURL=.*$/gm, "");
+        combinedJs += "\n;\n" + jsCode;
+        link.remove();
+      } catch (e) {
+        console.error("Error JS prefetch:", href, e);
       }
     }
 
@@ -513,7 +544,7 @@
         var href = links[i].getAttribute("href");
         if (!href) continue;
         var absUrl = toAbsoluteUrl(href, baseUrl);
-        if (cssIgnoreList.some(function(ignored) { return absUrl.includes(ignored) || href.includes(ignored) })) {
+        if (cssIgnoreList.some(function(ignored) { return stripQueryString(absUrl).includes(stripQueryString(ignored)) || stripQueryString(href).includes(stripQueryString(ignored)) })) {
           links[i].remove();
         }
       }
@@ -524,8 +555,17 @@
         var src = scripts[i].getAttribute("src");
         if (!src) continue;
         var absUrl = toAbsoluteUrl(src, baseUrl);
-        if (jsIgnoreList.some(function(ignored) { return absUrl.includes(ignored) || src.includes(ignored) })) {
+        if (jsIgnoreList.some(function(ignored) { return stripQueryString(absUrl).includes(stripQueryString(ignored)) || stripQueryString(src).includes(stripQueryString(ignored)) })) {
           scripts[i].remove();
+        }
+      }
+      var jsLinks = doc.querySelectorAll('link[as="script"]');
+      for (var j = 0; j < jsLinks.length; j++) {
+        var href = jsLinks[j].getAttribute("href");
+        if (!href) continue;
+        var absUrl = toAbsoluteUrl(href, baseUrl);
+        if (jsIgnoreList.some(function(ignored) { return stripQueryString(absUrl).includes(stripQueryString(ignored)) || stripQueryString(href).includes(stripQueryString(ignored)) })) {
+          jsLinks[j].remove();
         }
       }
     }
