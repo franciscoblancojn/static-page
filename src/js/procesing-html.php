@@ -129,7 +129,7 @@
   function toAbsoluteUrl(url, baseUrl) {
     return new URL(url, baseUrl).href;
   }
-  async function convinarCssExterno(doc, baseUrl, ignoreList = []) {
+  async function convinarCssExterno(doc, baseUrl, ignoreList = [], processList = []) {
     const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
     let css = "";
@@ -143,6 +143,10 @@
 
         if (ignoreList.some(function(ignored) { return cssUrl.includes(ignored) || href.includes(ignored) })) {
           link.remove();
+          continue;
+        }
+
+        if (processList.length > 0 && !processList.some(function(p) { return cssUrl.includes(p) || href.includes(p) })) {
           continue;
         }
 
@@ -377,7 +381,7 @@
 
   const JS_VALID_TYPES = ["", "text/javascript", "application/javascript"];
 
-  async function combinarJs(doc, baseUrl, processExternal, processInternal, ignoreList = []) {
+  async function combinarJs(doc, baseUrl, processExternal, processInternal, ignoreList = [], processList = []) {
     const allScripts = [...doc.querySelectorAll("script")];
     let combinedJs = "";
 
@@ -399,6 +403,7 @@
           }
 
           if (!isWpContent(jsUrl)) continue;
+          if (processList.length > 0 && !processList.some(function(p) { return jsUrl.includes(p) || src.includes(p) })) continue;
           if (shouldIgnoreScript(script, jsUrl)) {
             console.log("JS IGNORADO:", jsUrl);
             continue;
@@ -563,11 +568,13 @@
 
     const cssIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE_LIST || [];
     const jsIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE_LIST || [];
+    const cssProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO_PROCESS || [];
+    const jsProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO_PROCESS || [];
 
     removeIgnoredAssets(doc, baseUrl, cssIgnoreList, jsIgnoreList);
 
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO) {
-      css += await convinarCssExterno(doc, baseUrl, cssIgnoreList);
+      css += await convinarCssExterno(doc, baseUrl, cssIgnoreList, cssProcessList);
     }
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_INTERNO) {
       css += convinarCssInterno(doc);
@@ -601,7 +608,7 @@
 
     let js = "";
     if (processJsExterno || processJsInterno) {
-      js = await combinarJs(doc, baseUrl, processJsExterno, processJsInterno, jsIgnoreList);
+      js = await combinarJs(doc, baseUrl, processJsExterno, processJsInterno, jsIgnoreList, jsProcessList);
     }
 
     if (js) {
