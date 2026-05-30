@@ -6,7 +6,7 @@ Generate optimized static HTML files from your WordPress pages. Inlines CSS, rem
 **Tags:** static page, performance, cache, optimization, elementor  
 **Requires at least:** 5.0  
 **Tested up to:** 6.0  
-**Stable tag:** 1.4.3
+**Stable tag:** 1.5.0
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,9 @@ Static Page converts your WordPress pages into **standalone static HTML files** 
 - **HTML minification** — removes HTML comments, whitespace, and newlines
 - **Elementor compatibility** — respects Elementor edit/preview modes and `?action=elementor`
 - **CSS/JS ignore** — select specific CSS or JS files to exclude from processing; ignored files are removed from the final HTML
+- **CSS/JS process selection** — with "Procesar CSS/JS Externo" enabled, choose exactly which non-ignored files to process (grouped by plugin/theme with select all)
+- **Collapsible file lists** — ignore and process lists are collapsible, allowing you to compress them without disabling the option
+- **External file generation only when active** — the `.css`/`.js` file is only written to disk when "Generar CSS/JS Externo" is checked
 - **`<a tabindex="0">` to `<span>`** — automatically replaces anchor tags with `tabindex="0"` by semantic `<span>` elements
 - **Disable query param** — append `?STPA_DISABLE=1` to view the original WordPress-rendered page
 - **REST API authentication** — requires both `X-WP-Nonce` and `api-key` headers
@@ -53,16 +56,16 @@ Static Page converts your WordPress pages into **standalone static HTML files** 
 2. In the meta box **"Configuración Pagina Estatica"** (below the editor), check the options you want:
    - **Activar Carga de Pagina Estatica** — required, enables static page serving
    - Expand **Configuración de CSS** to access:
-     - **Procesar CSS Externo** — inline all `<link rel="stylesheet">` from `wp-content/`
-     - **Procesar CSS Interno** — combine all `<style>` tags into one
-     - **Eliminar CSS No Usado** — purge unused CSS rules from the combined stylesheet
-     - **Generar CSS Externo** — save CSS as a separate file instead of inlining
-     - **Ignorar CSS** — select specific CSS files to exclude; they are removed from the final HTML
+      - **Ignorar CSS** — select specific CSS files to exclude; they are removed from the final HTML (collapsible list)
+      - **Procesar CSS Externo** — inline `<link rel="stylesheet">` files from `wp-content/`. Enables a collapsible list to select which non-ignored files to process (grouped by plugin/theme)
+      - **Procesar CSS Interno** — combine all `<style>` tags into one
+      - **Eliminar CSS No Usado** — purge unused CSS rules from the combined stylesheet
+      - **Generar CSS Externo** — save CSS as a separate file instead of inlining (only writes to disk when active)
    - Expand **Configuración de JS** to access:
-     - **Procesar JS Externo (Beta)** — inline external JavaScript files
-     - **Procesar JS Interno (Beta)** — combine inline scripts
-     - **Generar JS Externo** — save JS as a separate file instead of inlining
-     - **Ignorar JS** — select specific JS files to exclude; they are removed from the final HTML
+      - **Ignorar JS** — select specific JS files to exclude; they are removed from the final HTML (collapsible list)
+      - **Procesar JS Externo (Beta)** — inline external JavaScript files. Enables a collapsible list to select which non-ignored files to process (grouped by plugin/theme)
+      - **Procesar JS Interno (Beta)** — combine inline scripts
+      - **Generar JS Externo** — save JS as a separate file instead of inlining
 3. Click **"Generar Pagina Estatica y Guardar"**
 
 The plugin will:
@@ -100,8 +103,10 @@ Save the generation config (checkbox states) for a page.
     "STPA_PAGE_STATIC_CSS_INTERNO": true,
     "STPA_PAGE_STATIC_CSS_IGNORE": true,
     "STPA_PAGE_STATIC_CSS_IGNORE_LIST": ["https://example.com/wp-content/themes/theme/style.css"],
+    "STPA_PAGE_STATIC_CSS_EXTERNO_PROCESS": ["https://example.com/wp-content/plugins/plugin/styles.css"],
     "STPA_PAGE_STATIC_JS_IGNORE": true,
-    "STPA_PAGE_STATIC_JS_IGNORE_LIST": ["https://example.com/wp-content/plugins/plugin/script.js"]
+    "STPA_PAGE_STATIC_JS_IGNORE_LIST": ["https://example.com/wp-content/plugins/plugin/script.js"],
+    "STPA_PAGE_STATIC_JS_EXTERNO_PROCESS": ["https://example.com/wp-content/themes/theme/app.js"]
   }
 }
 ```
@@ -129,7 +134,7 @@ procesing-html.php (client-side JS processing)
     ├── getCode()              — fetch page HTML via URL (?STPA_DISABLE=1)
     ├── eliminarWpadminbar()   — remove #wpadminbar, fix top margin
     ├── removeIgnoredAssets()  — remove ignored CSS/JS from DOM unconditionally
-    ├── convinarCssExterno()   — download & inline <link> CSS, minify
+    ├── convinarCssExterno()   — download & inline user-selected <link> CSS (filtered by process list), minify
     ├── convinarCssInterno()   — collect & combine <style> tags
     ├── cssMinfy()             — minify CSS (safe: no comma-in-string corruption)
     ├── fixLazyImages()        — restore lazy-loaded images
