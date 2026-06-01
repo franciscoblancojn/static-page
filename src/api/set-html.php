@@ -30,8 +30,7 @@ class STPA_API_SET_HTML extends STPA_API
             throw new Exception('El parámetro html es requerido');
         }
 
-        $upload_dir = wp_upload_dir();
-        $dir = $upload_dir['basedir'] ."/". STPA_KEY;
+        $dir = STPA_get_output_dir($post_id);
         if (!file_exists($dir)) {
             wp_mkdir_p($dir);
         }

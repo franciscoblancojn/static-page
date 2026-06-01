@@ -1,0 +1,192 @@
+<style>
+    .tab-content:not(.nav-tab-active) {
+        display: none;
+    }
+    .tab-content {
+        padding-top: 1rem;
+    }
+    .nav-tab {
+        cursor: pointer;
+    }
+    .stpa-message {
+        font-weight: 900;
+        position: sticky;
+        left: 0;
+        top: 2.5rem;
+        padding: 1rem;
+        border-radius: .5rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        z-index: 10;
+    }
+    .stpa-message.error {
+        color: #fff;
+        background: #d63638;
+    }
+    .stpa-message.ok {
+        color: #fff;
+        background: #25992f;
+    }
+    [type="submit"].stpa-loader {
+        position: relative;
+        color: transparent !important;
+    }
+    [type="submit"].stpa-loader::after {
+        content: '';
+        display: block;
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 1rem;
+        height: 1rem;
+        aspect-ratio: 1/1;
+        border-radius: 100%;
+        border: 2px solid #1d2327;
+        border-top-color: transparent;
+        animation: stpa-rotate 1s infinite;
+    }
+    [type="submit"].button-primary.stpa-loader::after {
+        border: 2px solid #fff;
+        border-top-color: transparent;
+    }
+    @keyframes stpa-rotate {
+        to { transform: rotateZ(360deg); }
+    }
+    .content-btn {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .content-title-btn {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .content-btn .submit {
+        margin: 0;
+        padding: 0;
+    }
+    .stpa-tooltip {
+        position: relative;
+        cursor: pointer;
+        margin-left: 6px;
+        display: inline-block;
+    }
+    .stpa-tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 10px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #1d2327 transparent transparent transparent;
+    }
+    .stpa-tooltip-text {
+        visibility: hidden;
+        opacity: 0;
+        width: 360px;
+        background: #1d2327;
+        color: #fff;
+        text-align: left;
+        padding: 8px;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 9999;
+        bottom: 125%;
+        left: 0;
+        transition: opacity 0.2s ease;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    .stpa-tooltip:hover .stpa-tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+    .stpa-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .stpa-table th,
+    .stpa-table td {
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .stpa-table th {
+        background: #f0f0f1;
+        font-weight: 600;
+        border-bottom: 2px solid #c3c4c7;
+    }
+    .stpa-table td {
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .stpa-table tr:hover td {
+        background: #f6f7f7;
+    }
+    .stpa-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .stpa-status.active {
+        background: #d5f5e3;
+        color: #1a7d36;
+    }
+    .stpa-status.inactive {
+        background: #fce8e8;
+        color: #b32d2e;
+    }
+    .stpa-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .stpa-actions .button {
+        min-height: 30px;
+        line-height: 28px;
+        font-size: 12px;
+    }
+    .stpa-file-info {
+        font-size: 12px;
+        color: #666;
+    }
+    .stpa-bulk-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 12px;
+        background: #f0f0f1;
+        border-radius: 4px;
+    }
+    .stpa-bulk-actions select {
+        min-width: 180px;
+    }
+    .stpa-badge {
+        display: inline-block;
+        background: #2271b1;
+        color: #fff;
+        font-size: 11px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        margin-left: 6px;
+    }
+    @media screen and (max-width: 782px) {
+        .stpa-table th,
+        .stpa-table td {
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        .stpa-actions {
+            flex-direction: column;
+        }
+    }
+</style>

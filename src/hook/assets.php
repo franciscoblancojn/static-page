@@ -26,15 +26,23 @@ class STPA_ASSETS
             exit;
         }
 
-        $upload_dir = wp_upload_dir();
-        $file = $upload_dir['basedir'] . '/' . STPA_KEY . '/' . $file_param;
+        $post_id = (int) $matches[1];
+        $ext = $matches[2];
+
+        $html_file = get_post_meta($post_id, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
+        if ($html_file && file_exists($html_file)) {
+            $dir = dirname($html_file);
+            $file = $dir . '/' . $file_param;
+        } else {
+            $upload_dir = wp_upload_dir();
+            $file = $upload_dir['basedir'] . '/' . STPA_KEY . '/' . $file_param;
+        }
 
         if (!file_exists($file)) {
             status_header(404);
             exit;
         }
 
-        $ext = $matches[2];
         $content_type = $ext === 'css' ? 'text/css' : 'application/javascript';
 
         header('Content-Type: ' . $content_type . '; charset=UTF-8');
