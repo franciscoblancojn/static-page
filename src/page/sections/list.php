@@ -56,6 +56,14 @@ foreach ($pages as $p) {
         </div>
 
         <table class="wp-list-table widefat fixed striped stpa-table">
+        <colgroup>
+            <col style="width: 5%;">
+            <col style="width: 5%;">
+            <col style="width: 20%;">
+            <col style="width: 10%;">
+            <col style="width: 20%;">
+            <col style="width: 40%;">
+        </colgroup>
             <thead>
                 <tr>
                     <th width="40">
@@ -138,6 +146,9 @@ foreach ($pages as $p) {
 
                                 <a href="<?= $viewUrl ?>" class="button button-small" target="_blank">
                                     Ver
+                                </a>
+                                <a href="<?= $viewUrl."?STPA_DISABLE" ?>" class="button button-small" target="_blank">
+                                    Ver Pagina Original
                                 </a>
                             </div>
                         </td>
