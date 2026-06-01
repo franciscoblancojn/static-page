@@ -148,7 +148,11 @@ foreach ($pages as $p) {
                                     Ver
                                 </a>
                                 <a href="<?= $viewUrl."?STPA_DISABLE" ?>" class="button button-small" target="_blank">
-                                    Ver Pagina Original
+                                    Ver Original
+                                </a>
+                                <a href="https://pagespeed.web.dev/analysis?url=<?= urlencode($viewUrl) ?>&form_factor=mobile"
+                                   class="button button-small" target="_blank" title="Analizar con PageSpeed Insights">
+                                    <span class="dashicons dashicons-chart-area" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
                                 </a>
                             </div>
                         </td>
