@@ -14,8 +14,8 @@ add_action('wp_ajax_stpa_toggle_active', function () {
         $config = [];
     }
 
-    $current = $config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? '0';
-    $config[STPA_PAGE_CONFIG::KEY_ACTIVE] = $current === '1' ? '0' : '1';
+    $current = $config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false;
+    $config[STPA_PAGE_CONFIG::KEY_ACTIVE] = !$current;
     update_post_meta($post_id, STPA_PAGE_CONFIG::KEY_CONFIG, $config);
 
     wp_send_json_success(['active' => $config[STPA_PAGE_CONFIG::KEY_ACTIVE]]);

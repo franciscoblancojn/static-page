@@ -81,7 +81,7 @@ foreach ($pages as $p) {
                     $config = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
                     if (!is_array($config)) $config = [];
 
-                    $isActive = ($config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false) === '1';
+                    $isActive = ($config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false);
                     $htmlFile = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
                     $hasFile = $htmlFile && file_exists($htmlFile);
                     $fileSize = $hasFile ? size_format(filesize($htmlFile)) : '';
