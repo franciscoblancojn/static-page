@@ -4,6 +4,9 @@ add_action('template_redirect', function () {
     if (isset($_GET[STPA_KEY . "_DISABLE"])) {
         return;
     }
+    if (isset($_GET['preview']) && $_GET['preview'] == 'true') {
+        return;
+    }
     if (isset($_GET["action"]) && $_GET["action"] == "elementor") {
         return;
     }
