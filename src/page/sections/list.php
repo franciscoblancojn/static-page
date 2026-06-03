@@ -135,7 +135,7 @@ function stpa_render_page_row($page, $isChild = false) {
         <td>
             <div class="stpa-actions">
                 <a href="<?= $editUrl ?>" class="button button-small" target="_blank">
-                    <span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
+                    <span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:16px;"></span>
                 </a>
                 <button type="button"
                     class="button button-small stpa-toggle-active <?= $isActive ? 'button-primary' : '' ?>"
