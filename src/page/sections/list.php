@@ -59,8 +59,10 @@ foreach ($allPages as $p) {
 
 $showFilters = $total > 0;
 
+$filteredIds = [];
 $children = [];
 foreach ($filtered as $p) {
+    $filteredIds[$p->ID] = true;
     if ($p->post_parent > 0) {
         $children[$p->post_parent][] = $p;
     }
@@ -85,7 +87,7 @@ foreach ($filtered as $p) {
         foreach ($children[$p->ID] as $child) {
             $rendered[] = $child->ID;
         }
-    } elseif ($p->post_parent > 0 && isset($children[$p->post_parent])) {
+    } elseif ($p->post_parent > 0 && isset($filteredIds[$p->post_parent])) {
         continue;
     } else {
         $standalone[] = $p;
