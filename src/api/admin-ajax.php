@@ -85,6 +85,29 @@ add_action('wp_ajax_stpa_bulk_action', function () {
                 update_post_meta($post_id, STPA_PAGE_CONFIG::KEY_CONFIG, $config);
                 break;
 
+            case 'regenerate':
+                $config[STPA_PAGE_CONFIG::KEY_ACTIVE] = '1';
+                update_post_meta($post_id, STPA_PAGE_CONFIG::KEY_CONFIG, $config);
+
+                $url = add_query_arg(STPA_KEY . '_DISABLE', '1', get_permalink($post_id));
+                $response = wp_remote_get($url, [
+                    'timeout' => 60,
+                    'sslverify' => false,
+                    'headers' => ['Cache-Control' => 'no-cache'],
+                ]);
+
+                if (!is_wp_error($response)) {
+                    $html = wp_remote_retrieve_body($response);
+                    $dir = STPA_get_output_dir($post_id);
+                    if (!file_exists($dir)) {
+                        wp_mkdir_p($dir);
+                    }
+                    $file = $dir . "/page-{$post_id}.html";
+                    file_put_contents($file, $html);
+                    update_post_meta($post_id, STPA_PAGE_CONFIG::KEY_HTML_FILE, $file);
+                }
+                break;
+
             case 'delete':
                 $html_file = get_post_meta($post_id, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
                 if ($html_file && file_exists($html_file)) {

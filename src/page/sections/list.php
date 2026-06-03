@@ -106,7 +106,7 @@ function stpa_render_page_row($page, $isChild = false) {
     $viewUrl = get_permalink($page->ID);
     $indent = $isChild ? ' style="padding-left:36px;"' : '';
     ?>
-    <tr class="stpa-page-row" data-parent-id="<?= $page->post_parent ?>">
+    <tr class="stpa-page-row" data-parent-id="<?= $page->post_parent ?>" data-regen-nonce="<?= wp_create_nonce('stpa_regen_' . $page->ID) ?>">
         <td>
             <input type="checkbox" class="stpa-bulk-checkbox" value="<?= $page->ID ?>">
         </td>
@@ -134,7 +134,7 @@ function stpa_render_page_row($page, $isChild = false) {
         </td>
         <td>
             <div class="stpa-actions">
-                <a href="<?= $editUrl ?>" class="button button-small" target="_blank">
+                <a href="<?= $editUrl ?>" class="button button-small" target="_blank" style="display:flex;align-items:center;">
                     <span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:16px;"></span>
                 </a>
                 <button type="button"
@@ -209,6 +209,7 @@ function stpa_render_page_row($page, $isChild = false) {
                 <option value="">— Acciones masivas —</option>
                 <option value="activate">Activar</option>
                 <option value="deactivate">Desactivar</option>
+                <option value="regenerate">Regenerar</option>
                 <option value="delete">Eliminar archivos y desactivar</option>
             </select>
             <button type="button" id="stpa-bulk-apply" class="button" data-nonce="<?= wp_create_nonce('stpa_bulk') ?>">

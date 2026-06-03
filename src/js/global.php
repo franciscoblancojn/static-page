@@ -128,6 +128,65 @@
 
                 if (!confirm('¿Aplicar "' + action + '" a ' + checked.length + ' página(s)?')) return;
 
+                if (action === 'regenerate') {
+                    const postIds = [];
+                    checked.forEach(function(cb) {
+                        postIds.push(cb.value);
+                    });
+
+                    bulkApplyBtn.disabled = true;
+                    bulkApplyBtn.textContent = 'Regenerando 0/' + postIds.length + '...';
+
+                    let index = 0;
+
+                    function regenerateNext() {
+                        if (index >= postIds.length) {
+                            bulkApplyBtn.textContent = '¡Completado!';
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                            return;
+                        }
+
+                        const postId = postIds[index];
+                        bulkApplyBtn.textContent = 'Regenerando ' + (index + 1) + '/' + postIds.length + ' (ID ' + postId + ')...';
+
+                        const row = document.querySelector('.stpa-page-row[data-regen-nonce] input.stpa-bulk-checkbox[value="' + postId + '"]');
+                        const regenRow = row ? row.closest('.stpa-page-row') : null;
+                        const nonce = regenRow ? regenRow.dataset.regenNonce : '';
+
+                        fetch(ajaxurl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: new URLSearchParams({
+                                    action: 'stpa_regenerate',
+                                    post_id: postId,
+                                    nonce: nonce
+                                })
+                            })
+                            .then(function(r) {
+                                return r.json()
+                            })
+                            .then(function(data) {
+                                index++;
+                                if (!data.success) {
+                                    console.warn('Error regenerando ID ' + postId + ': ' + (data.data?.message || 'Error'));
+                                }
+                                regenerateNext();
+                            })
+                            .catch(function() {
+                                index++;
+                                console.warn('Error de conexión al regenerar ID ' + postId);
+                                regenerateNext();
+                            });
+                    }
+
+                    regenerateNext();
+                    return;
+                }
+
                 const postIds = [];
                 checked.forEach(function(cb) {
                     postIds.push(cb.value);
