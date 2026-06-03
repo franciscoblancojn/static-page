@@ -1,6 +1,6 @@
 {
   "name": "static-page",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "It is an plugin of wordpress, for create static page of your pages.",
   "main": "index.js",
   "scripts": {
