@@ -1,5 +1,9 @@
 <?php
 
+$search = trim($_GET['stpa_search'] ?? '');
+$statusFilter = $_GET['stpa_status'] ?? '';
+$fileFilter = $_GET['stpa_file'] ?? '';
+
 $pages = get_posts([
     'post_type' => 'page',
     'posts_per_page' => -1,
@@ -14,11 +18,12 @@ $pages = get_posts([
     'order' => 'ASC',
 ]);
 
-$total = count($pages);
+$allPages = $pages;
+$total = count($allPages);
 $active = 0;
 $with_file = 0;
 
-foreach ($pages as $p) {
+foreach ($allPages as $p) {
     $cfg = get_post_meta($p->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
     if (is_array($cfg) && ($cfg[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false)) {
         $active++;
@@ -29,6 +34,31 @@ foreach ($pages as $p) {
     }
 }
 
+$filtered = [];
+
+foreach ($allPages as $p) {
+    $cfg = get_post_meta($p->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
+    if (!is_array($cfg)) $cfg = [];
+    $isActive = ($cfg[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false);
+    $htmlFile = get_post_meta($p->ID, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
+    $hasFile = $htmlFile && file_exists($htmlFile);
+    $title = get_the_title($p->ID);
+
+    if ($statusFilter === 'active' && !$isActive) continue;
+    if ($statusFilter === 'inactive' && $isActive) continue;
+    if ($fileFilter === 'with' && !$hasFile) continue;
+    if ($fileFilter === 'without' && $hasFile) continue;
+    if ($search !== '') {
+        $matchId = strpos((string)$p->ID, $search) !== false;
+        $matchTitle = stripos($title, $search) !== false;
+        if (!$matchId && !$matchTitle) continue;
+    }
+
+    $filtered[] = $p;
+}
+
+$showFilters = $total > 0;
+
 ?>
 <div class="wrap">
     <h2>
@@ -37,12 +67,32 @@ foreach ($pages as $p) {
         <span class="stpa-badge" style="background:#1a7d36;"><?= $active ?> activas</span>
         <span class="stpa-badge" style="background:#2271b1;"><?= $with_file ?> con archivo</span>
     </h2>
+    <br>
 
     <?php if ($total === 0): ?>
         <div class="notice notice-info inline">
             <p>No hay páginas con la configuración de Static Page. Ve a editar una página y activa la opción "Activar Carga de Pagina Estatica" en el meta-box.</p>
         </div>
     <?php else: ?>
+        <form class="stpa-filters" method="get">
+            <input type="hidden" name="page" value="<?= esc_attr($_GET['page'] ?? '') ?>">
+            <input type="text" name="stpa_search" class="stpa-search-input" placeholder="Buscar por nombre o ID..." value="<?= esc_attr($search) ?>">
+            <select name="stpa_status">
+                <option value="">Todos los estados</option>
+                <option value="active" <?= selected($statusFilter, 'active', false) ?>>Activos</option>
+                <option value="inactive" <?= selected($statusFilter, 'inactive', false) ?>>Inactivos</option>
+            </select>
+            <select name="stpa_file">
+                <option value="">Todos los archivos</option>
+                <option value="with" <?= selected($fileFilter, 'with', false) ?>>Con archivo</option>
+                <option value="without" <?= selected($fileFilter, 'without', false) ?>>Sin archivo</option>
+            </select>
+            <button type="submit" class="button">Filtrar</button>
+            <?php if ($search !== '' || $statusFilter !== '' || $fileFilter !== ''): ?>
+                <a href="<?= esc_url(remove_query_arg(['stpa_search', 'stpa_status', 'stpa_file'])) ?>" class="button">Limpiar</a>
+            <?php endif; ?>
+        </form>
+
         <div class="stpa-bulk-actions">
             <select id="stpa-bulk-action">
                 <option value="">— Acciones masivas —</option>
@@ -53,6 +103,7 @@ foreach ($pages as $p) {
             <button type="button" id="stpa-bulk-apply" class="button" data-nonce="<?= wp_create_nonce('stpa_bulk') ?>">
                 Aplicar
             </button>
+            <span class="stpa-filter-count"><?= count($filtered) ?> página(s) filtrada(s)</span>
         </div>
 
         <table class="wp-list-table widefat fixed striped stpa-table">
@@ -77,7 +128,10 @@ foreach ($pages as $p) {
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($pages as $page):
+                <?php if (count($filtered) === 0): ?>
+                    <tr><td colspan="6" style="text-align:center;padding:2rem;color:#999;">No se encontraron páginas con los filtros seleccionados.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($filtered as $page):
                     $config = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
                     if (!is_array($config)) $config = [];
 

@@ -163,12 +163,31 @@
         gap: 8px;
         align-items: center;
         margin-bottom: 1rem;
-        padding: 12px;
+        padding: 0;
         background: #f0f0f1;
         border-radius: 4px;
     }
     .stpa-bulk-actions select {
         min-width: 180px;
+    }
+    .stpa-filters {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0;
+        background: #f0f0f1;
+        border-radius: 4px;
+        flex-wrap: wrap;
+    }
+    .stpa-filters .stpa-search-input {
+        flex: 1;
+        min-width: 200px;
+    }
+    .stpa-filter-count {
+        margin-left: auto;
+        font-size: 12px;
+        color: #666;
     }
     .stpa-badge {
         display: inline-block;
