@@ -59,6 +59,115 @@ foreach ($allPages as $p) {
 
 $showFilters = $total > 0;
 
+$children = [];
+foreach ($filtered as $p) {
+    if ($p->post_parent > 0) {
+        $children[$p->post_parent][] = $p;
+    }
+}
+
+$displayGroups = [];
+$standalone = [];
+$rendered = [];
+
+foreach ($filtered as $p) {
+    if (in_array($p->ID, $rendered)) continue;
+
+    if (isset($children[$p->ID])) {
+        usort($children[$p->ID], function ($a, $b) {
+            return strcmp(get_the_title($a->ID), get_the_title($b->ID));
+        });
+        $displayGroups[] = [
+            'parent' => $p,
+            'children' => $children[$p->ID],
+        ];
+        $rendered[] = $p->ID;
+        foreach ($children[$p->ID] as $child) {
+            $rendered[] = $child->ID;
+        }
+    } elseif ($p->post_parent > 0 && isset($children[$p->post_parent])) {
+        continue;
+    } else {
+        $standalone[] = $p;
+        $rendered[] = $p->ID;
+    }
+}
+
+function stpa_render_page_row($page, $isChild = false) {
+    $config = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
+    if (!is_array($config)) $config = [];
+    $isActive = ($config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false);
+    $htmlFile = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
+    $hasFile = $htmlFile && file_exists($htmlFile);
+    $fileSize = $hasFile ? size_format(filesize($htmlFile)) : '';
+    $editUrl = get_edit_post_link($page->ID);
+    $viewUrl = get_permalink($page->ID);
+    $indent = $isChild ? ' style="padding-left:36px;"' : '';
+    ?>
+    <tr class="stpa-page-row" data-parent-id="<?= $page->post_parent ?>">
+        <td>
+            <input type="checkbox" class="stpa-bulk-checkbox" value="<?= $page->ID ?>">
+        </td>
+        <td><?= $page->ID ?></td>
+        <td<?= $indent ?>>
+            <?php if ($isChild): ?>
+                <span class="dashicons dashicons-arrow-right stpa-child-icon"></span>
+            <?php endif; ?>
+            <strong><?= esc_html(get_the_title($page->ID)) ?></strong>
+        </td>
+        <td>
+            <span class="stpa-status <?= $isActive ? 'active' : 'inactive' ?>">
+                <span class="dashicons dashicons-<?= $isActive ? 'yes' : 'no' ?>"></span>
+                <?= $isActive ? 'Activo' : 'Inactivo' ?>
+            </span>
+        </td>
+        <td>
+            <?php if ($hasFile): ?>
+                <code class="stpa-file-info">page-<?= $page->ID ?>.html</code>
+                <br>
+                <small class="stpa-file-info"><?= $fileSize ?></small>
+            <?php else: ?>
+                <span class="stpa-file-info" style="color:#999;">Sin archivo</span>
+            <?php endif; ?>
+        </td>
+        <td>
+            <div class="stpa-actions">
+                <a href="<?= $editUrl ?>" class="button button-small" target="_blank">
+                    <span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
+                </a>
+                <button type="button"
+                    class="button button-small stpa-toggle-active <?= $isActive ? 'button-primary' : '' ?>"
+                    data-post-id="<?= $page->ID ?>"
+                    data-nonce="<?= wp_create_nonce('stpa_toggle_' . $page->ID) ?>">
+                    <?= $isActive ? 'Desactivar' : 'Activar' ?>
+                </button>
+                <?php if ($isActive): ?>
+                    <button type="button"
+                        class="button button-small stpa-regenerate"
+                        data-post-id="<?= $page->ID ?>"
+                        data-nonce="<?= wp_create_nonce('stpa_regen_' . $page->ID) ?>">
+                        Regenerar
+                    </button>
+                <?php endif; ?>
+                <?php if ($hasFile): ?>
+                    <button type="button"
+                        class="button button-small stpa-delete-file"
+                        data-post-id="<?= $page->ID ?>"
+                        data-nonce="<?= wp_create_nonce('stpa_delete_' . $page->ID) ?>">
+                        Eliminar
+                    </button>
+                <?php endif; ?>
+                <a href="<?= $viewUrl ?>" class="button button-small" target="_blank">Ver</a>
+                <a href="<?= $viewUrl."?STPA_DISABLE" ?>" class="button button-small" target="_blank">Ver Original</a>
+                <a href="https://pagespeed.web.dev/analysis?url=<?= urlencode($viewUrl) ?>&form_factor=mobile"
+                   class="button button-small" target="_blank" title="Analizar con PageSpeed Insights">
+                    <span class="dashicons dashicons-chart-area" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
+                </a>
+            </div>
+        </td>
+    </tr>
+<?php }
+
 ?>
 <div class="wrap">
     <h2>
@@ -127,92 +236,35 @@ $showFilters = $total > 0;
                     <th width="320">Acciones</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php if (count($filtered) === 0): ?>
+            <?php if (count($filtered) === 0): ?>
+                <tbody>
                     <tr><td colspan="6" style="text-align:center;padding:2rem;color:#999;">No se encontraron páginas con los filtros seleccionados.</td></tr>
-                <?php endif; ?>
-                <?php foreach ($filtered as $page):
-                    $config = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_CONFIG, true);
-                    if (!is_array($config)) $config = [];
-
-                    $isActive = ($config[STPA_PAGE_CONFIG::KEY_ACTIVE] ?? false);
-                    $htmlFile = get_post_meta($page->ID, STPA_PAGE_CONFIG::KEY_HTML_FILE, true);
-                    $hasFile = $htmlFile && file_exists($htmlFile);
-                    $fileSize = $hasFile ? size_format(filesize($htmlFile)) : '';
-                    $editUrl = get_edit_post_link($page->ID);
-                    $viewUrl = get_permalink($page->ID);
-                ?>
-                    <tr>
-                        <td>
-                            <input type="checkbox" class="stpa-bulk-checkbox" value="<?= $page->ID ?>">
-                        </td>
-                        <td><?= $page->ID ?></td>
-                        <td>
-                            <strong><?= esc_html(get_the_title($page->ID)) ?></strong>
-                        </td>
-                        <td>
-                            <span class="stpa-status <?= $isActive ? 'active' : 'inactive' ?>">
-                                <span class="dashicons dashicons-<?= $isActive ? 'yes' : 'no' ?>"></span>
-                                <?= $isActive ? 'Activo' : 'Inactivo' ?>
-                            </span>
-                        </td>
-                        <td>
-                            <?php if ($hasFile): ?>
-                                <code class="stpa-file-info">
-                                    page-<?= $page->ID ?>.html
-                                </code>
-                                <br>
-                                <small class="stpa-file-info"><?= $fileSize ?></small>
-                            <?php else: ?>
-                                <span class="stpa-file-info" style="color:#999;">Sin archivo</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="stpa-actions">
-                                <a href="<?= $editUrl ?>" class="button button-small" target="_blank">
-                                    <span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
-                                </a>
-
-                                <button type="button"
-                                    class="button button-small stpa-toggle-active <?= $isActive ? 'button-primary' : '' ?>"
-                                    data-post-id="<?= $page->ID ?>"
-                                    data-nonce="<?= wp_create_nonce('stpa_toggle_' . $page->ID) ?>">
-                                    <?= $isActive ? 'Desactivar' : 'Activar' ?>
-                                </button>
-
-                                <?php if ($isActive): ?>
-                                    <button type="button"
-                                        class="button button-small stpa-regenerate"
-                                        data-post-id="<?= $page->ID ?>"
-                                        data-nonce="<?= wp_create_nonce('stpa_regen_' . $page->ID) ?>">
-                                        Regenerar
-                                    </button>
-                                <?php endif; ?>
-
-                                <?php if ($hasFile): ?>
-                                    <button type="button"
-                                        class="button button-small stpa-delete-file"
-                                        data-post-id="<?= $page->ID ?>"
-                                        data-nonce="<?= wp_create_nonce('stpa_delete_' . $page->ID) ?>">
-                                        Eliminar
-                                    </button>
-                                <?php endif; ?>
-
-                                <a href="<?= $viewUrl ?>" class="button button-small" target="_blank">
-                                    Ver
-                                </a>
-                                <a href="<?= $viewUrl."?STPA_DISABLE" ?>" class="button button-small" target="_blank">
-                                    Ver Original
-                                </a>
-                                <a href="https://pagespeed.web.dev/analysis?url=<?= urlencode($viewUrl) ?>&form_factor=mobile"
-                                   class="button button-small" target="_blank" title="Analizar con PageSpeed Insights">
-                                    <span class="dashicons dashicons-chart-area" style="font-size:14px;width:14px;height:14px;margin-top:3px;"></span>
-                                </a>
-                            </div>
+                </tbody>
+            <?php endif; ?>
+            <?php foreach ($displayGroups as $group):
+                $parent = $group['parent'];
+            ?>
+                <tbody class="stpa-group" data-group-id="<?= $parent->ID ?>">
+                    <tr class="stpa-group-header">
+                        <td colspan="6">
+                            <span class="stpa-group-toggle dashicons dashicons-arrow-down"></span>
+                            <strong><?= esc_html(get_the_title($parent->ID)) ?></strong>
+                            <span class="stpa-badge" style="background:#787c82;"><?= count($group['children']) ?> subpáginas</span>
                         </td>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
+                    <?php stpa_render_page_row($parent); ?>
+                    <?php foreach ($group['children'] as $child):
+                        stpa_render_page_row($child, true);
+                    endforeach; ?>
+                </tbody>
+            <?php endforeach; ?>
+            <?php if (count($standalone) > 0): ?>
+                <tbody class="stpa-standalone">
+                    <?php foreach ($standalone as $page):
+                        stpa_render_page_row($page);
+                    endforeach; ?>
+                </tbody>
+            <?php endif; ?>
             <tfoot>
                 <tr>
                     <th><input type="checkbox" id="stpa-select-all-2" onchange="document.getElementById('stpa-select-all').checked=this.checked;document.querySelectorAll('.stpa-bulk-checkbox').forEach(function(cb){cb.checked=this.checked},this)"></th>

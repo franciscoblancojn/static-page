@@ -162,6 +162,22 @@
             });
         }
 
+        document.querySelectorAll('.stpa-group').forEach(function(group) {
+            const header = group.querySelector('.stpa-group-header');
+            if (!header) return;
+            const toggle = header.querySelector('.stpa-group-toggle');
+            const rows = group.querySelectorAll('.stpa-page-row');
+
+            header.addEventListener('click', function() {
+                const isCollapsed = toggle.classList.contains('dashicons-arrow-right');
+                rows.forEach(function(row) {
+                    row.style.display = isCollapsed ? '' : 'none';
+                });
+                toggle.classList.toggle('dashicons-arrow-down', isCollapsed);
+                toggle.classList.toggle('dashicons-arrow-right', !isCollapsed);
+            });
+        });
+
         const regenBtns = document.querySelectorAll('.stpa-regenerate');
         regenBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {

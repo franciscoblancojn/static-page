@@ -189,6 +189,34 @@
         font-size: 12px;
         color: #666;
     }
+    .stpa-group-header {
+        cursor: pointer;
+        background: #e8e8eb !important;
+        user-select: none;
+    }
+    .stpa-group-header:hover td {
+        background: #ddd !important;
+    }
+    .stpa-group-header td {
+        padding: 8px 12px !important;
+        font-size: 13px;
+        border-bottom: 1px solid #c3c4c7;
+    }
+    .stpa-group-toggle {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
+    .stpa-child-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+        margin-right: 2px;
+        vertical-align: middle;
+        color: #999;
+    }
     .stpa-badge {
         display: inline-block;
         background: #2271b1;
@@ -207,5 +235,11 @@
         .stpa-actions {
             flex-direction: column;
         }
+    }
+    .stpa-page-row.stpa-page-row.stpa-page-row{
+        background: transparent;
+    }
+    .stpa-group{
+        background: #c3c4c731;
     }
 </style>
