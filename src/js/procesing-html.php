@@ -606,8 +606,11 @@
 
     let css = "";
 
-    const cssIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE_LIST || [];
-    const jsIgnoreList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE_LIST || [];
+    const cssIgnoreEnabled = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE ?? false;
+    const jsIgnoreEnabled = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE ?? false;
+
+    const cssIgnoreList = cssIgnoreEnabled ? (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE_LIST || []) : [];
+    const jsIgnoreList = jsIgnoreEnabled ? (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE_LIST || []) : [];
     const cssProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO_PROCESS || [];
     const jsProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO_PROCESS || [];
 

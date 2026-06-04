@@ -61,4 +61,4 @@ add_action('template_redirect', function () {
         exit;
     }
     return;
-});
+}, 1);
