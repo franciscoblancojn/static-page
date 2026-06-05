@@ -67,7 +67,6 @@ class STPA_PAGE_CONFIG
         $js_url  = home_url('/?' . STPA_KEY . '_ASSET=page-' . $post->ID . '.js');
         $cssIgnoreList = $config[self::KEY_CSS_IGNORE_LIST] ?? [];
         $jsIgnoreList = $config[self::KEY_JS_IGNORE_LIST] ?? [];
-        $cssProcessList = $config[self::KEY_CSS_EXTERNO_PROCESS_LIST] ?? [];
         $jsProcessList = $config[self::KEY_JS_EXTERNO_PROCESS_LIST] ?? [];
         $stpa_upload_dir = wp_upload_dir();
         $stpa_file_dir = $stpa_upload_dir['basedir'] . '/' . STPA_KEY;
@@ -202,14 +201,7 @@ class STPA_PAGE_CONFIG
                         <?= self::CONFIG[self::KEY_CSS_EXTERNO] ?>
                     </label>
                 </div>
-                <details class="stpa-list-collapse" data-list-type="process" data-type="css" <?= ($config[self::KEY_CSS_EXTERNO] ?? false) ? 'open' : '' ?>>
-                    <summary>Archivos a procesar</summary>
-                    <div class="stpa-list-content">
-                        <input type="hidden" class="stpa-process-values" name="<?= self::KEY_CSS_EXTERNO_PROCESS_LIST ?>" value='<?= json_encode($cssProcessList) ?>'>
-                        <div class="stpa-process-items" data-type="css"></div>
-                        <div class="stpa-process-loading" data-type="css" style="display:none;">Cargando archivos CSS disponibles...</div>
-                    </div>
-                </details>
+
                 <div class="stpa-field">
                     <label>
                         <input type="checkbox" name="<?= self::KEY_CSS_INTERNO ?>" value="1" <?= checked($config[self::KEY_CSS_INTERNO] ?? false, '1', false) ?>>
@@ -328,9 +320,6 @@ class STPA_PAGE_CONFIG
                     config['<?= self::KEY_JS_IGNORE_LIST ?>'] = JSON.parse(
                         document.querySelector(`input[name='<?= self::KEY_JS_IGNORE_LIST ?>']`)?.value || '[]'
                     )
-                    config['<?= self::KEY_CSS_EXTERNO_PROCESS_LIST ?>'] = JSON.parse(
-                        document.querySelector(`input[name='<?= self::KEY_CSS_EXTERNO_PROCESS_LIST ?>']`)?.value || '[]'
-                    )
                     config['<?= self::KEY_JS_EXTERNO_PROCESS_LIST ?>'] = JSON.parse(
                         document.querySelector(`input[name='<?= self::KEY_JS_EXTERNO_PROCESS_LIST ?>']`)?.value || '[]'
                     )
@@ -444,6 +433,7 @@ class STPA_PAGE_CONFIG
 
                 const loadProcessList = async (type) => {
                     const container = document.querySelector(`.stpa-process-items[data-type="${type}"]`)
+                    if (!container) return
                     const loading = document.querySelector(`.stpa-process-loading[data-type="${type}"]`)
                     const hiddenInput = document.querySelector(`input.stpa-process-values[name^="<?= STPA_KEY ?>_PAGE_STATIC_${type.toUpperCase()}_EXTERNO_PROCESS"]`)
                     const currentProcessList = JSON.parse(hiddenInput?.value || '[]').map(stripQs)

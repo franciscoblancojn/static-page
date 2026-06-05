@@ -125,7 +125,7 @@
   function stripQueryString(url) {
     return url.split('?')[0];
   }
-  async function convinarCssExterno(doc, baseUrl, ignoreList = [], processList = []) {
+  async function convinarCssExterno(doc, baseUrl, ignoreList = []) {
     const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
     let css = "";
@@ -139,10 +139,6 @@
 
         if (ignoreList.some(function(ignored) { return stripQueryString(cssUrl).includes(stripQueryString(ignored)) || stripQueryString(href).includes(stripQueryString(ignored)) })) {
           link.remove();
-          continue;
-        }
-
-        if (processList.length > 0 && !processList.some(function(p) { return stripQueryString(cssUrl).includes(stripQueryString(p)) || stripQueryString(href).includes(stripQueryString(p)) })) {
           continue;
         }
 
@@ -611,13 +607,12 @@
 
     const cssIgnoreList = cssIgnoreEnabled ? (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_IGNORE_LIST || []) : [];
     const jsIgnoreList = jsIgnoreEnabled ? (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_IGNORE_LIST || []) : [];
-    const cssProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO_PROCESS || [];
     const jsProcessList = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_EXTERNO_PROCESS || [];
 
     removeIgnoredAssets(doc, baseUrl, cssIgnoreList, jsIgnoreList);
 
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_EXTERNO) {
-      css += await convinarCssExterno(doc, baseUrl, cssIgnoreList, cssProcessList);
+      css += await convinarCssExterno(doc, baseUrl, cssIgnoreList);
     }
     if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_INTERNO) {
       css += convinarCssInterno(doc);
