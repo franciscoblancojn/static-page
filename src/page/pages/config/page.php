@@ -1,5 +1,6 @@
 <?php
 require_once STPA_DIR . 'src/css/global.php';
+require_once STPA_DIR . 'src/js/procesing-html.php';
 
 $STPA_USE_DATA_CONFIG = new STPA_USE_DATA_CONFIG();
 $CONFIG = $STPA_USE_DATA_CONFIG->get();

@@ -3,6 +3,7 @@
 class STPA_API_SET_POST_CONFIG extends STPA_API
 {
     static protected $URL_ENDPOINT = "/post-config/(?P<id>\d+)";
+    static protected $METHODS = 'GET, POST';
 
     public static function validateEnpoint($request)
     {
@@ -22,6 +23,19 @@ class STPA_API_SET_POST_CONFIG extends STPA_API
 
         if (!$post) {
             throw new Exception('Page not found');
+        }
+
+        $method = $request->get_method();
+
+        if ($method === 'GET') {
+            $config = get_post_meta($post_id, STPA_PAGE_CONFIG::KEY_CONFIG, true);
+            if (!is_array($config)) {
+                $config = [];
+            }
+            return [
+                'success' => true,
+                'config' => $config,
+            ];
         }
 
         $config = $request->get_param('config');

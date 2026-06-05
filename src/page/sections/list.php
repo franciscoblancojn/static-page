@@ -106,7 +106,7 @@ function stpa_render_page_row($page, $isChild = false) {
     $viewUrl = get_permalink($page->ID);
     $indent = $isChild ? ' style="padding-left:36px;"' : '';
     ?>
-    <tr class="stpa-page-row" data-parent-id="<?= $page->post_parent ?>" data-regen-nonce="<?= wp_create_nonce('stpa_regen_' . $page->ID) ?>">
+    <tr class="stpa-page-row" data-parent-id="<?= $page->post_parent ?>" data-regen-nonce="<?= wp_create_nonce('stpa_regen_' . $page->ID) ?>" data-url="<?= esc_url($viewUrl) ?>">
         <td>
             <input type="checkbox" class="stpa-bulk-checkbox" value="<?= $page->ID ?>">
         </td>

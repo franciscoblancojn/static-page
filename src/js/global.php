@@ -137,53 +137,33 @@
                     bulkApplyBtn.disabled = true;
                     bulkApplyBtn.textContent = 'Regenerando 0/' + postIds.length + '...';
 
-                    let index = 0;
+                    (async function() {
+                        for (let i = 0; i < postIds.length; i++) {
+                            const postId = postIds[i];
+                            bulkApplyBtn.textContent = 'Regenerando ' + (i + 1) + '/' + postIds.length + ' (ID ' + postId + ')...';
 
-                    function regenerateNext() {
-                        if (index >= postIds.length) {
-                            bulkApplyBtn.textContent = '¡Completado!';
-                            setTimeout(function() {
-                                location.reload();
-                            }, 1000);
-                            return;
+                            const row = document.querySelector('.stpa-page-row[data-url] input.stpa-bulk-checkbox[value="' + postId + '"]');
+                            const regenRow = row ? row.closest('.stpa-page-row') : null;
+                            const url = regenRow ? regenRow.dataset.url : null;
+
+                            if (!url) {
+                                console.warn('Error: URL no disponible para ID ' + postId);
+                                continue;
+                            }
+
+                            try {
+                                await stpaRegeneratePost(postId, url);
+                            } catch (e) {
+                                console.warn('Error regenerando ID ' + postId + ': ' + e.message);
+                            }
                         }
 
-                        const postId = postIds[index];
-                        bulkApplyBtn.textContent = 'Regenerando ' + (index + 1) + '/' + postIds.length + ' (ID ' + postId + ')...';
+                        bulkApplyBtn.textContent = '¡Completado!';
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    })();
 
-                        const row = document.querySelector('.stpa-page-row[data-regen-nonce] input.stpa-bulk-checkbox[value="' + postId + '"]');
-                        const regenRow = row ? row.closest('.stpa-page-row') : null;
-                        const nonce = regenRow ? regenRow.dataset.regenNonce : '';
-
-                        fetch(ajaxurl, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded'
-                                },
-                                body: new URLSearchParams({
-                                    action: 'stpa_regenerate',
-                                    post_id: postId,
-                                    nonce: nonce
-                                })
-                            })
-                            .then(function(r) {
-                                return r.json()
-                            })
-                            .then(function(data) {
-                                index++;
-                                if (!data.success) {
-                                    console.warn('Error regenerando ID ' + postId + ': ' + (data.data?.message || 'Error'));
-                                }
-                                regenerateNext();
-                            })
-                            .catch(function() {
-                                index++;
-                                console.warn('Error de conexión al regenerar ID ' + postId);
-                                regenerateNext();
-                            });
-                    }
-
-                    regenerateNext();
                     return;
                 }
 
@@ -237,49 +217,62 @@
             });
         });
 
+        const STPA_HEADERS = {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": <?= json_encode(wp_create_nonce('wp_rest')) ?>,
+            "api-key": <?= json_encode(STPA_API::getApiKey()) ?>
+        };
+
+        async function stpaRegeneratePost(postId, url) {
+            const configResp = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/" + postId, { headers: STPA_HEADERS });
+            const configData = await configResp.json();
+            if (!configData.success) throw new Error(configData?.message || 'Error al obtener config');
+            const config = configData.config;
+
+            const html = await getCode(url + "?<?= STPA_KEY ?>_DISABLE=1");
+            const result = await procesingHtml(html, url, config);
+
+            const bodyData = { html: result.html };
+            if (result.css) bodyData.css = result.css;
+            if (result.js) bodyData.js = result.js;
+
+            const saveResp = await fetch("/wp-json/<?= STPA_KEY ?>/html/" + postId, {
+                method: "POST",
+                headers: STPA_HEADERS,
+                body: JSON.stringify(bodyData)
+            });
+            const saveData = await saveResp.json();
+            if (!saveData.success) throw new Error(saveData?.message || 'Error al guardar');
+        }
+
         const regenBtns = document.querySelectorAll('.stpa-regenerate');
         regenBtns.forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', async function(e) {
                 e.preventDefault();
                 const postId = this.dataset.postId;
-                const nonce = this.dataset.nonce;
+                const row = this.closest('.stpa-page-row');
+                const url = row ? row.dataset.url : null;
                 const btnEl = this;
                 const originalText = btnEl.textContent;
+
+                if (!url) {
+                    alert('Error: URL de página no disponible');
+                    return;
+                }
 
                 btnEl.textContent = 'Regenerando...';
                 btnEl.classList.add('stpa-loader');
                 btnEl.disabled = true;
 
-                fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: new URLSearchParams({
-                            action: 'stpa_regenerate',
-                            post_id: postId,
-                            nonce: nonce
-                        })
-                    })
-                    .then(function(r) {
-                        return r.json()
-                    })
-                    .then(function(data) {
-                        if (data.success) {
-                            location.reload();
-                        } else {
-                            alert('Error: ' + (data.data?.message || 'Error al regenerar'));
-                            btnEl.textContent = originalText;
-                            btnEl.classList.remove('stpa-loader');
-                            btnEl.disabled = false;
-                        }
-                    })
-                    .catch(function() {
-                        alert('Error de conexión');
-                        btnEl.textContent = originalText;
-                        btnEl.classList.remove('stpa-loader');
-                        btnEl.disabled = false;
-                    });
+                try {
+                    await stpaRegeneratePost(postId, url);
+                    location.reload();
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                    btnEl.textContent = originalText;
+                    btnEl.classList.remove('stpa-loader');
+                    btnEl.disabled = false;
+                }
             });
         });
     });
