@@ -17,9 +17,11 @@ class STPA_API
     }
     public static function init()
     {
-        add_action('rest_api_init', function () {
-            register_rest_route(STPA_KEY, static::$URL_ENDPOINT, [
-                'methods' => static::$METHODS,
+        $endpoint = static::$URL_ENDPOINT;
+        $methods  = static::$METHODS;
+        add_action('rest_api_init', function () use ($endpoint, $methods) {
+            register_rest_route(STPA_KEY, $endpoint, [
+                'methods' => $methods,
                 'callback' => function ($request) {
                     try {
                         static::validateApiKey($request);
@@ -34,7 +36,7 @@ class STPA_API
                     }
                 },
                 'permission_callback' => function () {
-                    return self::permission_callback();
+                    return static::permission_callback();
                 }
             ]);
         });
