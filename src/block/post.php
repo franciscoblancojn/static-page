@@ -597,7 +597,7 @@ class STPA_PAGE_CONFIG
                         btn.classList.add("loader")
                         btn.textContent = "Generando..."
                         const config = onGetConfig();
-                        const response_config = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/<?= $post->ID ?>", {
+                        const response_config = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/<?= $post->ID ?>/", {
                             method: "POST",
                             headers,
                             body: JSON.stringify({
@@ -616,7 +616,7 @@ class STPA_PAGE_CONFIG
                         const bodyData = { html: finalHtml };
                         if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE && finalCss) bodyData.css = finalCss;
                         if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE && finalJs) bodyData.js = finalJs;
-                        const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>", {
+                        const response = await fetch("/wp-json/<?= STPA_KEY ?>/html/<?= $post->ID ?>/", {
                             method: "POST",
                             headers,
                             body: JSON.stringify(bodyData)
