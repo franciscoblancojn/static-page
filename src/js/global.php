@@ -224,7 +224,9 @@
         };
 
         async function stpaRegeneratePost(postId, url) {
-            const configResp = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/" + postId, { headers: STPA_HEADERS });
+            const configResp = await fetch("/wp-json/<?= STPA_KEY ?>/post-config/" + postId, {
+                headers: STPA_HEADERS
+            });
             const configData = await configResp.json();
             if (!configData.success) throw new Error(configData?.message || 'Error al obtener config');
             const config = configData.config;
@@ -232,11 +234,13 @@
             const html = await getCode(url + "?<?= STPA_KEY ?>_DISABLE=1");
             const result = await procesingHtml(html, url, config);
 
-            const bodyData = { html: result.html };
+            const bodyData = {
+                html: result.html
+            };
             if (result.css) bodyData.css = result.css;
             if (result.js) bodyData.js = result.js;
 
-            const saveResp = await fetch("/wp-json/<?= STPA_KEY ?>/html/" + postId, {
+            const saveResp = await fetch("/wp-json/<?= STPA_KEY ?>/html/" + postId + "/", {
                 method: "POST",
                 headers: STPA_HEADERS,
                 body: JSON.stringify(bodyData)

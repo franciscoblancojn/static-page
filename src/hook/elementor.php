@@ -101,7 +101,7 @@ add_action('elementor/editor/after_enqueue_scripts', function () {
                     };
                     if (CONFIG['<?= STPA_PAGE_CONFIG::KEY_CSS_FILE ?>'] && result.css) bodyData.css = result.css;
                     if (CONFIG['<?= STPA_PAGE_CONFIG::KEY_JS_FILE ?>'] && result.js) bodyData.js = result.js;
-                    await fetch("/wp-json/<?= STPA_KEY ?>/html/" + POST_ID, {
+                    await fetch("/wp-json/<?= STPA_KEY ?>/html/" + POST_ID + "/", {
                         method: "POST",
                         headers: HEADERS,
                         body: JSON.stringify(bodyData)
