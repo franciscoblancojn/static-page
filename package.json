@@ -1,12 +1,12 @@
 {
   "name": "static-page",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "It is an plugin of wordpress, for create static page of your pages.",
   "main": "index.js",
   "scripts": {
     "v": "grep -i \"Version:\" index.php | sed 's/.*Version:[[:space:]]*//'",
     "sync:package": "VERSION=$(npm run -s v) && npm version $VERSION --no-git-tag-version",
-    "sync:readme": "VERSION=$(npm run -s v) && sed -i \"s/^\\*\\*Stable tag:\\*\\*.*/**Stable tag:** $VERSION/\" README.md",
+    "sync:readme": "VERSION=$(npm run -s v) && sed -i \"s/\\*\\*Version:\\*\\* [0-9.]\\+/**Version:** $VERSION/\" README.md",
     "sync:version": "npm run sync:package && npm run sync:readme",
     "push-v": "bash scripts/bump-version.sh",
     "push-tag": "npm run sync:version && VERSION=$(npm run -s v) && git add . && git commit -m \"Release $VERSION\" && git tag $VERSION && git push origin master && git push origin $VERSION",

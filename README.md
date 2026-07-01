@@ -1,6 +1,6 @@
 # Static Page 🚀
 
-**Version:** 1.9.3 | **License:** GPLv2+
+**Version:** 1.10.1 | **License:** GPLv2+
 
 Static Page convierte tus páginas de WordPress en **archivos HTML estáticos optimizados** almacenados en `wp-content/uploads/STPA/`. En lugar de cargar WordPress en cada visita (ejecutando consultas PHP, hooks y filtros), el plugin sirve el archivo HTML pre-generado directamente — resultando en tiempos de carga más rápidos y menor carga en el servidor.
 
