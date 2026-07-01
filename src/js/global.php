@@ -249,6 +249,127 @@
             if (!saveData.success) throw new Error(saveData?.message || 'Error al guardar');
         }
 
+        const gsCreateBtn = document.getElementById('stpa-gs-create-btn');
+        if (gsCreateBtn) {
+            gsCreateBtn.addEventListener('click', function() {
+                const postId = document.getElementById('stpa-gs-post-id').value;
+                const selector = document.getElementById('stpa-gs-selector').value.trim();
+                const resultEl = document.getElementById('stpa-gs-create-result');
+
+                if (!selector) {
+                    alert('Ingresa una clave de búsqueda (selector).');
+                    return;
+                }
+
+                gsCreateBtn.disabled = true;
+                gsCreateBtn.classList.add('stpa-loader');
+
+                fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams({
+                            action: 'stpa_global_section_create',
+                            post_id: postId,
+                            selector: selector,
+                            nonce: gsCreateBtn.dataset.nonce
+                        })
+                    })
+                    .then(function(r) {
+                        return r.json()
+                    })
+                    .then(function(data) {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            resultEl.textContent = 'Error: ' + (data.data?.message || 'No se pudo crear la sección');
+                            gsCreateBtn.disabled = false;
+                            gsCreateBtn.classList.remove('stpa-loader');
+                        }
+                    })
+                    .catch(function() {
+                        resultEl.textContent = 'Error de conexión';
+                        gsCreateBtn.disabled = false;
+                        gsCreateBtn.classList.remove('stpa-loader');
+                    });
+            });
+        }
+
+        document.querySelectorAll('.stpa-gs-regenerate').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const slug = this.dataset.slug;
+                const nonce = this.dataset.nonce;
+                const self = this;
+                const originalText = self.textContent;
+
+                self.disabled = true;
+                self.textContent = 'Regenerando...';
+
+                fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams({
+                            action: 'stpa_global_section_regenerate',
+                            slug: slug,
+                            nonce: nonce
+                        })
+                    })
+                    .then(function(r) {
+                        return r.json()
+                    })
+                    .then(function(data) {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.data?.message || 'No se pudo regenerar'));
+                            self.disabled = false;
+                            self.textContent = originalText;
+                        }
+                    })
+                    .catch(function() {
+                        alert('Error de conexión');
+                        self.disabled = false;
+                        self.textContent = originalText;
+                    });
+            });
+        });
+
+        document.querySelectorAll('.stpa-gs-delete').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('¿Eliminar esta Sección Global?')) return;
+                const slug = this.dataset.slug;
+                const nonce = this.dataset.nonce;
+
+                fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams({
+                            action: 'stpa_global_section_delete',
+                            slug: slug,
+                            nonce: nonce
+                        })
+                    })
+                    .then(function(r) {
+                        return r.json()
+                    })
+                    .then(function(data) {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.data?.message || 'No se pudo eliminar'));
+                        }
+                    })
+                    .catch(function() {
+                        alert('Error de conexión');
+                    });
+            });
+        });
+
         const regenBtns = document.querySelectorAll('.stpa-regenerate');
         regenBtns.forEach(function(btn) {
             btn.addEventListener('click', async function(e) {

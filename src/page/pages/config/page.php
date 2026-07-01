@@ -11,6 +11,10 @@ $TAGS = [
         'title' => 'Páginas Estáticas',
     ],
     [
+        'key' => 'global-sections',
+        'title' => 'Secciones Globales',
+    ],
+    [
         'key' => 'config',
         'title' => 'Configuración',
     ],

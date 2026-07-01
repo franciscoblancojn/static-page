@@ -180,3 +180,112 @@ add_action('wp_ajax_stpa_regenerate', function () {
         'size' => size_format(filesize($file)),
     ]);
 });
+
+add_action('wp_ajax_stpa_global_section_create', function () {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'No tienes permisos']);
+    }
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'stpa_global_section_action')) {
+        wp_send_json_error(['message' => 'Nonce inválido']);
+    }
+
+    $post_id = intval($_POST['post_id'] ?? 0);
+    $selector = trim(wp_unslash($_POST['selector'] ?? ''));
+
+    if (!$selector) {
+        wp_send_json_error(['message' => 'La clave de búsqueda es requerida']);
+    }
+
+    $post = get_post($post_id);
+    if (!$post) {
+        wp_send_json_error(['message' => 'Página no encontrada']);
+    }
+
+    $slug = STPA_global_section_slug($selector);
+    $existing = STPA_GLOBAL_SECTIONS_DATA::get($slug);
+    if ($existing && ($existing['selector'] ?? '') !== $selector) {
+        wp_send_json_error(['message' => 'La clave "' . $selector . '" genera un identificador en conflicto con una sección existente. Usa otra clave.']);
+    }
+
+    $url = add_query_arg(STPA_KEY . '_DISABLE', '1', get_permalink($post_id));
+
+    try {
+        $html = STPA_extract_section_html($url, $selector);
+    } catch (\Throwable $th) {
+        wp_send_json_error(['message' => $th->getMessage()]);
+    }
+
+    $dir = STPA_get_global_sections_dir();
+    if (!file_exists($dir)) {
+        wp_mkdir_p($dir);
+    }
+    $file = $dir . '/' . $slug . '.html';
+    file_put_contents($file, $html);
+
+    STPA_GLOBAL_SECTIONS_DATA::save($slug, [
+        'selector' => $selector,
+        'source_post_id' => $post_id,
+        'file' => $file,
+        'updated_at' => current_time('mysql'),
+    ]);
+
+    $updated = STPA_sweep_global_section_update($selector, $html);
+
+    wp_send_json_success([
+        'message' => 'Sección Global creada correctamente.',
+        'slug' => $slug,
+        'updated_pages' => count($updated),
+    ]);
+});
+
+add_action('wp_ajax_stpa_global_section_regenerate', function () {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'No tienes permisos']);
+    }
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'stpa_global_section_action')) {
+        wp_send_json_error(['message' => 'Nonce inválido']);
+    }
+
+    $slug = sanitize_title($_POST['slug'] ?? '');
+    $entry = STPA_GLOBAL_SECTIONS_DATA::get($slug);
+    if (!$entry) {
+        wp_send_json_error(['message' => 'Sección Global no encontrada']);
+    }
+
+    $url = add_query_arg(STPA_KEY . '_DISABLE', '1', get_permalink($entry['source_post_id']));
+
+    try {
+        $html = STPA_extract_section_html($url, $entry['selector']);
+    } catch (\Throwable $th) {
+        wp_send_json_error(['message' => $th->getMessage()]);
+    }
+
+    file_put_contents($entry['file'], $html);
+    $entry['updated_at'] = current_time('mysql');
+    STPA_GLOBAL_SECTIONS_DATA::save($slug, $entry);
+
+    $updated = STPA_sweep_global_section_update($entry['selector'], $html);
+
+    wp_send_json_success([
+        'message' => 'Sección Global regenerada correctamente.',
+        'updated_pages' => count($updated),
+    ]);
+});
+
+add_action('wp_ajax_stpa_global_section_delete', function () {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'No tienes permisos']);
+    }
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'stpa_global_section_action')) {
+        wp_send_json_error(['message' => 'Nonce inválido']);
+    }
+
+    $slug = sanitize_title($_POST['slug'] ?? '');
+    $entry = STPA_GLOBAL_SECTIONS_DATA::get($slug);
+    if ($entry && !empty($entry['file']) && file_exists($entry['file'])) {
+        unlink($entry['file']);
+    }
+    STPA_GLOBAL_SECTIONS_DATA::delete($slug);
+
+    wp_send_json_success();
+});

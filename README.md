@@ -36,6 +36,43 @@ Static Page converts your WordPress pages into **standalone static HTML files** 
 - **`<a tabindex="0">` to `<span>`** — automatically replaces anchor tags with `tabindex="0"` by semantic `<span>` elements
 - **Disable query param** — append `?STPA_DISABLE=1` to view the original WordPress-rendered page
 - **REST API authentication** — requires both `X-WP-Nonce` and `api-key` headers
+- **Secciones Globales (Global Sections)** — extract a recurring section (e.g. `header`, `footer`, `#seccion1`) from one page and reuse it across every static page; updating the Global Section updates all already-generated static files automatically, no per-page regeneration needed
+
+---
+
+## Global Sections
+
+Available under **Static Page → Secciones Globales** in the admin menu.
+
+### Create a Global Section
+
+1. Choose the **source page** to extract the section from
+2. Enter a **search key** — a simple selector: a tag name (`header`, `footer`), an `#id`, or a `.class`
+3. Click **Crear Sección Global**
+
+The plugin fetches the source page (`?STPA_DISABLE=1`), locates the first element matching the selector, and saves its outer HTML to:
+
+```
+wp-content/uploads/STPA/section-global/{slug}.html
+```
+
+### How it's applied — at render time
+
+Every time a static page is served (`template_redirect`), the plugin reads the saved static file and, in a single DOM pass, replaces any element matching a registered Global Section's selector with that section's saved HTML (`STPA_apply_global_sections_to_html()` in `src/helpers.php`). This means:
+
+- Regenerating a Global Section (re-extracting it from its source page) instantly updates it on **every** page that contains that selector — no need to click "Generar Pagina Estatica" on any of them.
+- The `page-{id}.html` file on disk is left untouched; only the response sent to visitors is patched. Downloading the raw file (or opening it directly) still shows the version baked in at generation time.
+
+### Applied again at generation time
+
+Whenever a page's static HTML is (re)generated — manually, via bulk actions, or via the Elementor auto-regenerate hook — the client-side processing pipeline (`procesingHtml()`) also looks up every registered Global Section, runs `document.querySelector(selector)` against the page being processed, and if found, replaces that element with the Global Section's saved HTML before continuing with CSS/JS inlining and minification. This keeps the saved file itself in sync too (useful for direct downloads), on top of the render-time substitution above.
+
+### Managing Global Sections
+
+The **Secciones Globales** table lists every created section with actions to:
+- **Ver HTML** — open the saved fragment directly
+- **Regenerar** — re-fetch the section from its source page and re-apply it to all generated pages
+- **Eliminar** — remove the saved file and its registry entry
 
 ---
 

@@ -1,5 +1,43 @@
 <script>
   const stpa_json_config_keys = <?= json_encode(STPA_PAGE_CONFIG::CONFIG) ?>;
+  const STPA_GLOBAL_SECTIONS = <?php
+    $stpa_gs_list = [];
+    $stpa_gs_base_url = STPA_get_global_sections_url();
+    foreach (STPA_GLOBAL_SECTIONS_DATA::getAll() as $stpa_gs_slug => $stpa_gs_entry) {
+        $stpa_gs_list[] = [
+            'selector' => $stpa_gs_entry['selector'] ?? '',
+            'url' => $stpa_gs_base_url . '/' . $stpa_gs_slug . '.html',
+        ];
+    }
+    echo json_encode($stpa_gs_list);
+  ?>;
+  /**
+   * Reemplaza en el doc cada sección coincidente con una Sección Global
+   * por su HTML guardado, así el header/footer se actualiza en un solo lugar.
+   */
+  async function applyGlobalSections(doc) {
+    for (const section of STPA_GLOBAL_SECTIONS) {
+      if (!section.selector) continue;
+
+      let el;
+      try {
+        el = doc.querySelector(section.selector);
+      } catch (e) {
+        continue;
+      }
+      if (!el) continue;
+
+      const html = await getCode(section.url);
+      if (!html) continue;
+
+      const tmp = doc.createElement("div");
+      tmp.innerHTML = html;
+      while (tmp.firstChild) {
+        el.parentNode.insertBefore(tmp.firstChild, el);
+      }
+      el.remove();
+    }
+  }
   /**
    * Minificador CSS simple sin librerías
    */
@@ -599,6 +637,8 @@
     if (!config?.<?= STPA_KEY ?>_PAGE_STATIC_ACTIVE) {
       throw new Error("Activa Carga de Pagina Estatica");
     }
+
+    await applyGlobalSections(doc);
 
     let css = "";
 

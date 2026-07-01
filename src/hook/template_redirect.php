@@ -54,10 +54,12 @@ add_action('template_redirect', function () {
     );
 
     if ($file && file_exists($file)) {
+        $html = STPA_apply_global_sections_to_html(file_get_contents($file));
+
         status_header(200);
         header('Content-Type: text/html; charset=utf-8');
-        header('Content-Length: ' . filesize($file));
-        echo file_get_contents($file);
+        header('Content-Length: ' . strlen($html));
+        echo $html;
         exit;
     }
     return;
