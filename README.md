@@ -6,7 +6,7 @@ Generate optimized static HTML files from your WordPress pages. Inlines CSS, rem
 **Tags:** static page, performance, cache, optimization, elementor  
 **Requires at least:** 5.0  
 **Tested up to:** 6.0  
-**Stable tag:** 1.9.3
+**Stable tag:** 1.10.0
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
