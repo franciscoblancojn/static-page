@@ -1,4 +1,8 @@
 <?php
+
+use franciscoblancojn\wordpress_utils\FWUPage;
+
+echo FWUPage::css();
 require_once STPA_DIR . 'src/css/global.php';
 require_once STPA_DIR . 'src/js/procesing-html.php';
 
@@ -24,15 +28,7 @@ $defaultTag = $TAGS[0]['key'];
 ?>
 <div id="page-<?= STPA_KEY ?>" class="wrap">
     <h1>Static Page</h1>
-    <div class="nav-tab-wrapper woo-nav-tab-wrapper">
-        <?php foreach ($TAGS as $tag): ?>
-            <a class="nav-tab <?= $tag['key'] === $defaultTag ? 'nav-tab-active' : '' ?>"
-               data-tab="<?= $tag['key'] ?>"
-               href="#tag-<?= $tag['key'] ?>">
-                <?= $tag['title'] ?>
-            </a>
-        <?php endforeach; ?>
-    </div>
+    <?php FWUPage::tabs($TAGS, $defaultTag); ?>
     <?php foreach ($TAGS as $tag): ?>
         <div class="tab-content <?= $tag['key'] === $defaultTag ? 'nav-tab-active' : '' ?>" id="<?= $tag['key'] ?>">
             <?php require_once STPA_DIR . 'src/page/sections/' . $tag['key'] . '.php'; ?>
@@ -40,4 +36,6 @@ $defaultTag = $TAGS[0]['key'];
     <?php endforeach; ?>
 </div>
 <?php
+
+echo FWUPage::js(STPA_KEY);
 require_once STPA_DIR . 'src/js/global.php';

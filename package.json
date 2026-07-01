@@ -28,8 +28,10 @@
     "url": "git+https://github.com/franciscoblancojn/static-page.git"
   },
   "keywords": [
-    "aveonline",
-    "shipping"
+    "static page",
+    "performance",
+    "cache",
+    "optimization"
   ],
   "author": "franciscoblancojn",
   "license": "ISC",

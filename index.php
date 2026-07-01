@@ -29,8 +29,16 @@ define("STPA_BASENAME", plugin_basename(__FILE__));
 define("STPA_DIR", plugin_dir_path(__FILE__));
 define("STPA_URL", plugin_dir_url(__FILE__));
 
-require_once STPA_DIR . 'update.php';
-github_updater_plugin_wordpress_v1([
+function STPA_get_version()
+{
+    $plugin_data = get_plugin_data(__FILE__);
+    $plugin_version = $plugin_data['Version'];
+    return $plugin_version;
+}
+
+use franciscoblancojn\wordpress_utils\FWUUpdate;
+
+FWUUpdate::init([
     'basename' => STPA_BASENAME,
     'dir' => STPA_DIR,
     'file' => "index.php",
