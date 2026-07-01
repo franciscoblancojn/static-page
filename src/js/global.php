@@ -279,5 +279,175 @@
                 }
             });
         });
+
+        /* ========== Global Sections JS ========== */
+        const gsForm = document.getElementById('stpa-gs-create-form');
+        if (gsForm) {
+            gsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const btn = document.getElementById('stpa-gs-create-btn');
+                const msg = document.getElementById('stpa-gs-create-msg');
+                const pageId = document.getElementById('stpa-gs-page').value;
+                const key = document.getElementById('stpa-gs-key').value.trim();
+
+                if (!pageId || !key) {
+                    msg.textContent = 'Completa todos los campos.';
+                    msg.className = 'error';
+                    return;
+                }
+
+                btn.classList.add('stpa-gs-loader');
+                btn.disabled = true;
+                msg.style.display = 'none';
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        action: 'stpa_gs_create',
+                        page_id: pageId,
+                        key: key,
+                        nonce: <?= json_encode(wp_create_nonce('stpa_gs_create')) ?>
+                    })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        msg.textContent = data.data.message;
+                        msg.className = 'ok';
+                        setTimeout(function() { location.reload(); }, 1200);
+                    } else {
+                        msg.textContent = data.data.message || 'Error al crear sección';
+                        msg.className = 'error';
+                        btn.classList.remove('stpa-gs-loader');
+                        btn.disabled = false;
+                    }
+                    msg.style.display = '';
+                })
+                .catch(function() {
+                    msg.textContent = 'Error de conexión';
+                    msg.className = 'error';
+                    msg.style.display = '';
+                    btn.classList.remove('stpa-gs-loader');
+                    btn.disabled = false;
+                });
+            });
+        }
+
+        document.querySelectorAll('.stpa-gs-regenerate').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!confirm('¿Regenerar esta sección global desde la página de origen?')) return;
+
+                const key = this.dataset.gsKey;
+                const pageId = this.dataset.gsPage;
+                const nonce = this.dataset.nonce;
+                const row = this.closest('tr');
+                const originalText = this.textContent;
+
+                this.textContent = 'Regenerando...';
+                this.classList.add('stpa-gs-loader');
+                this.disabled = true;
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        action: 'stpa_gs_regenerate',
+                        key: key,
+                        page_id: pageId,
+                        nonce: nonce
+                    })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.data?.message || 'Error al regenerar'));
+                        location.reload();
+                    }
+                })
+                .catch(function() {
+                    alert('Error de conexión');
+                    location.reload();
+                });
+            });
+        });
+
+        document.querySelectorAll('.stpa-gs-delete').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!confirm('¿Eliminar esta sección global? Los elementos que la referencian quedarán con su contenido original.')) return;
+
+                const key = this.dataset.gsKey;
+                const nonce = this.dataset.nonce;
+                const row = this.closest('tr');
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        action: 'stpa_gs_delete',
+                        key: key,
+                        nonce: nonce
+                    })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.data?.message || 'Error al eliminar'));
+                    }
+                })
+                .catch(function() {
+                    alert('Error de conexión');
+                });
+            });
+        });
+
+        document.querySelectorAll('.stpa-gs-view').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const key = this.dataset.gsKey;
+                const nonce = this.dataset.nonce;
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        action: 'stpa_gs_view',
+                        key: key,
+                        nonce: nonce
+                    })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        document.getElementById('stpa-gs-view-title').textContent = 'HTML: ' + data.data.key + ' (' + data.data.size + ')';
+                        document.getElementById('stpa-gs-view-content').textContent = data.data.html;
+                        document.getElementById('stpa-gs-view-modal').classList.add('active');
+                    } else {
+                        alert('Error: ' + (data.data?.message || 'Error al obtener HTML'));
+                    }
+                })
+                .catch(function() {
+                    alert('Error de conexión');
+                });
+            });
+        });
+
+        const viewClose = document.getElementById('stpa-gs-view-close');
+        if (viewClose) {
+            viewClose.addEventListener('click', function() {
+                document.getElementById('stpa-gs-view-modal').classList.remove('active');
+            });
+            document.getElementById('stpa-gs-view-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        }
     });
 </script>

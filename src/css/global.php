@@ -242,4 +242,92 @@
     .stpa-group{
         background: #c3c4c731;
     }
+    .stpa-gs-view-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    .stpa-gs-view-modal-overlay.active {
+        display: flex;
+    }
+    .stpa-gs-view-modal-box {
+        background: #fff;
+        border-radius: 8px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: auto;
+        padding: 20px;
+    }
+    .stpa-gs-view-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .stpa-gs-view-modal-header h3 {
+        margin: 0;
+    }
+    .stpa-gs-view-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+    .stpa-gs-view-modal-content {
+        background: #f0f0f1;
+        padding: 16px;
+        border-radius: 4px;
+        overflow: auto;
+        font-size: 12px;
+        line-height: 1.5;
+        max-height: 60vh;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    #stpa-gs-create-msg {
+        display: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    #stpa-gs-create-msg.ok {
+        display: inline-block;
+        color: #fff;
+        background: #25992f;
+    }
+    #stpa-gs-create-msg.error {
+        display: inline-block;
+        color: #fff;
+        background: #d63638;
+    }
+    .stpa-gs-loader {
+        position: relative;
+        color: transparent !important;
+        pointer-events: none;
+    }
+    .stpa-gs-loader::after {
+        content: '';
+        display: block;
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 1rem;
+        height: 1rem;
+        aspect-ratio: 1/1;
+        border-radius: 100%;
+        border: 2px solid #1d2327;
+        border-top-color: transparent;
+        animation: stpa-rotate 1s infinite;
+    }
+    .stpa-gs-loader.button-primary::after {
+        border-color: #fff;
+        border-top-color: transparent;
+    }
 </style>
