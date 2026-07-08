@@ -66,7 +66,7 @@ $allPages = get_posts([
                     <select name="gs_page_id" id="stpa-gs-page" class="regular-text" required>
                         <option value="">— Seleccionar página —</option>
                         <?php foreach ($allPages as $p): ?>
-                            <option value="<?= $p->ID ?>"><?= esc_html(get_the_title($p->ID)) ?> (ID: <?= $p->ID ?>)</option>
+                            <option value="<?= $p->ID ?>" data-url="<?= esc_url(get_permalink($p->ID)) ?>"><?= esc_html(get_the_title($p->ID)) ?> (ID: <?= $p->ID ?>)</option>
                         <?php endforeach; ?>
                     </select>
                     <p class="description">La página de la cual se extraerá el HTML de la sección.</p>
@@ -141,6 +141,7 @@ $allPages = get_posts([
                                     class="button button-small stpa-gs-regenerate"
                                     data-gs-key="<?= esc_attr($sec['key']) ?>"
                                     data-gs-page="<?= $sourceId ?>"
+                                    data-gs-url="<?= $sourceId ? esc_url(get_permalink($sourceId)) : '' ?>"
                                     data-nonce="<?= wp_create_nonce('stpa_gs_regen_' . $sec['key']) ?>">
                                     Regenerar
                                 </button>

@@ -281,18 +281,65 @@
         });
 
         /* ========== Global Sections JS ========== */
+
+        /**
+         * Descarga la página de origen, extrae el elemento indicado por `key`
+         * (#id, .clase o tag) y detecta qué reglas CSS (externas + internas)
+         * le aplican, para dejarlas embebidas en un <style> junto al HTML.
+         * Así la sección global queda autocontenida y se ve igual en
+         * cualquier página donde se inserte.
+         */
+        async function stpaBuildGlobalSectionHtml(key, url) {
+            if (!url) {
+                throw new Error('No se pudo determinar la URL de la página de origen');
+            }
+
+            const sep = url.includes('?') ? '&' : '?';
+            const rawHtml = await getCode(url + sep + '<?= STPA_KEY ?>_DISABLE=1');
+            if (!rawHtml) {
+                throw new Error('No se pudo obtener el HTML de la página de origen');
+            }
+
+            const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+
+            let node;
+            try {
+                node = doc.querySelector(key);
+            } catch (e) {
+                throw new Error('Clave de búsqueda inválida: ' + key);
+            }
+            if (!node) {
+                throw new Error("No se encontró el elemento '" + key + "' en la página seleccionada.");
+            }
+
+            const elementHtml = node.outerHTML;
+
+            let combinedCss = '';
+            combinedCss += await convinarCssExterno(doc, url, []);
+            combinedCss += '\n' + convinarCssInterno(doc);
+            combinedCss = cssMinfy(combinedCss);
+
+            const fragDoc = new DOMParser().parseFromString(elementHtml, 'text/html');
+            const usedCss = purgeCss(combinedCss, fragDoc, { requireAtom: true }).trim();
+
+            return usedCss ? ('<style>' + usedCss + '</style>\n' + elementHtml) : elementHtml;
+        }
+
         const gsForm = document.getElementById('stpa-gs-create-form');
         if (gsForm) {
-            gsForm.addEventListener('submit', function(e) {
+            gsForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const btn = document.getElementById('stpa-gs-create-btn');
                 const msg = document.getElementById('stpa-gs-create-msg');
-                const pageId = document.getElementById('stpa-gs-page').value;
+                const pageSelect = document.getElementById('stpa-gs-page');
+                const pageId = pageSelect.value;
+                const pageUrl = pageSelect.selectedOptions[0] ? pageSelect.selectedOptions[0].dataset.url : '';
                 const key = document.getElementById('stpa-gs-key').value.trim();
 
                 if (!pageId || !key) {
                     msg.textContent = 'Completa todos los campos.';
                     msg.className = 'error';
+                    msg.style.display = '';
                     return;
                 }
 
@@ -300,78 +347,83 @@
                 btn.disabled = true;
                 msg.style.display = 'none';
 
-                fetch(ajaxurl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        action: 'stpa_gs_create',
-                        page_id: pageId,
-                        key: key,
-                        nonce: <?= json_encode(wp_create_nonce('stpa_gs_create')) ?>
-                    })
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
+                try {
+                    const html = await stpaBuildGlobalSectionHtml(key, pageUrl);
+
+                    const r = await fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            action: 'stpa_gs_create',
+                            page_id: pageId,
+                            key: key,
+                            html: html,
+                            nonce: <?= json_encode(wp_create_nonce('stpa_gs_create')) ?>
+                        })
+                    });
+                    const data = await r.json();
+
                     if (data.success) {
                         msg.textContent = data.data.message;
                         msg.className = 'ok';
                         setTimeout(function() { location.reload(); }, 1200);
                     } else {
-                        msg.textContent = data.data.message || 'Error al crear sección';
+                        msg.textContent = data.data?.message || 'Error al crear sección';
                         msg.className = 'error';
                         btn.classList.remove('stpa-gs-loader');
                         btn.disabled = false;
                     }
                     msg.style.display = '';
-                })
-                .catch(function() {
-                    msg.textContent = 'Error de conexión';
+                } catch (err) {
+                    msg.textContent = err.message || 'Error de conexión';
                     msg.className = 'error';
                     msg.style.display = '';
                     btn.classList.remove('stpa-gs-loader');
                     btn.disabled = false;
-                });
+                }
             });
         }
 
         document.querySelectorAll('.stpa-gs-regenerate').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', async function(e) {
                 e.preventDefault();
                 if (!confirm('¿Regenerar esta sección global desde la página de origen?')) return;
 
                 const key = this.dataset.gsKey;
                 const pageId = this.dataset.gsPage;
+                const pageUrl = this.dataset.gsUrl;
                 const nonce = this.dataset.nonce;
-                const row = this.closest('tr');
                 const originalText = this.textContent;
+                const btnEl = this;
 
-                this.textContent = 'Regenerando...';
-                this.classList.add('stpa-gs-loader');
-                this.disabled = true;
+                btnEl.textContent = 'Regenerando...';
+                btnEl.classList.add('stpa-gs-loader');
+                btnEl.disabled = true;
 
-                fetch(ajaxurl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        action: 'stpa_gs_regenerate',
-                        key: key,
-                        page_id: pageId,
-                        nonce: nonce
-                    })
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        location.reload();
-                    } else {
+                try {
+                    const html = await stpaBuildGlobalSectionHtml(key, pageUrl);
+
+                    const r = await fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            action: 'stpa_gs_regenerate',
+                            key: key,
+                            page_id: pageId,
+                            html: html,
+                            nonce: nonce
+                        })
+                    });
+                    const data = await r.json();
+
+                    if (!data.success) {
                         alert('Error: ' + (data.data?.message || 'Error al regenerar'));
-                        location.reload();
                     }
-                })
-                .catch(function() {
-                    alert('Error de conexión');
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                } finally {
                     location.reload();
-                });
+                }
             });
         });
 

@@ -152,7 +152,15 @@
     return cssMinfy(css);
   }
 
-  function purgeCss(css, doc) {
+  function purgeCss(css, doc, options = {}) {
+    // Modo estricto: usado al detectar el CSS de un fragmento/sección puntual
+    // (no de una página completa). En vez de conservar cualquier selector que
+    // matchee en algún lugar del documento (lo cual conserva de paso resets
+    // genéricos de tema/framework que no son "de la sección"), solo se
+    // conserva si el selector referencia una clase/ID que existe en el propio
+    // fragmento, o si es un @font-face cuya font-family sí se usa ahí.
+    const strictAtomsOnly = !!options.requireAtom;
+
     // Colectar tokens de JS inline y data-* para detectar clases agregadas dinámicamente
     const jsTokens = new Set();
 
@@ -215,6 +223,25 @@
       if (!testSelector || !/[a-zA-Z0-9_\-\[\].#*]/.test(testSelector)) {
         return true;
       }
+      const atoms = testSelector.match(/[.#][a-zA-Z][a-zA-Z0-9_-]*/g) || [];
+
+      if (strictAtomsOnly) {
+        // Sin modo laxo: un selector de solo tag/universal (sin clase ni ID)
+        // casi siempre matchea "algo" dentro de cualquier fragmento (img, a,
+        // label, h2...) y eso arrastraría CSS genérico de tema/framework que
+        // no es propio de esta sección. Se exige al menos un átomo .clase/#id
+        // presente en el fragmento.
+        if (atoms.length === 0) return false;
+        for (const atom of atoms) {
+          try {
+            if (doc.querySelector(atom) !== null) return true;
+          } catch (e) {
+            return true;
+          }
+        }
+        return false;
+      }
+
       try {
         if (doc.querySelector(testSelector) !== null) return true;
       } catch (e) {
@@ -223,7 +250,6 @@
       // Full selector didn't match — may be a compound/stateful selector where
       // a dynamic state class (added by JS) prevents matching the static DOM.
       // Keep the rule if ANY individual class or ID atom exists in the DOM.
-      const atoms = testSelector.match(/[.#][a-zA-Z][a-zA-Z0-9_-]*/g) || [];
       for (const atom of atoms) {
         try {
           if (doc.querySelector(atom) !== null) return true;
@@ -342,7 +368,53 @@
       return result;
     }
 
-    return parse(css);
+    let output = parse(css);
+
+    if (strictAtomsOnly) {
+      const bodyHtml = doc.body ? doc.body.innerHTML : "";
+
+      // @font-face siempre se conserva en el parse (keepAlways) porque no
+      // tiene selector contra el cual matchear. En modo estricto se recorta
+      // aparte: solo se deja si esa font-family aparece referenciada en una
+      // declaración "font-family:" real. El lookbehind evita falsos
+      // positivos con variables CSS que terminan en "-font-family"
+      // (ej. --e-a-font-family de los estilos del editor de Elementor).
+      const cssWithoutFontFace = output.replace(/@font-face\s*\{[^}]*\}/g, "");
+      const fontFamilyUses = (
+        (cssWithoutFontFace.match(/(?<![\w-])font-family\s*:[^;]+;/gi) || []).join(" ") +
+        " " +
+        (bodyHtml.match(/(?<![\w-])font-family\s*:[^;"']+/gi) || []).join(" ")
+      ).toLowerCase();
+
+      output = output.replace(/@font-face\s*\{[^}]*\}/g, function(block) {
+        const m = block.match(/font-family\s*:\s*(?:"([^"]+)"|'([^']+)'|([^;]+));/i);
+        const family = (m ? (m[1] || m[2] || m[3] || "") : "").trim().toLowerCase();
+        if (!family) return block;
+        return fontFamilyUses.includes(family) ? block : "";
+      });
+
+      // :root también se conserva siempre por no tener selector matcheable,
+      // y arrastra completos los bloques de variables CSS de hojas de
+      // estilo ajenas a la sección (ej. tokens de color/tipografía del
+      // editor de Elementor o de WooCommerce). Se recorta por declaración:
+      // solo quedan las variables --custom-prop que de verdad se usan con
+      // var(--custom-prop) en el resto del CSS o en el HTML del fragmento.
+      const cssWithoutRoot = output.replace(/:root\s*\{[^}]*\}/g, "");
+      const varUsageHaystack = (cssWithoutRoot + " " + bodyHtml).toLowerCase();
+
+      output = output.replace(/:root\s*\{([^}]*)\}/g, function(full, body) {
+        const kept = body.split(";")
+          .map(function(decl) { return decl.trim(); })
+          .filter(function(decl) {
+            const m = decl.match(/^(--[a-zA-Z0-9_-]+)\s*:/);
+            if (!m) return false;
+            return varUsageHaystack.indexOf("var(" + m[1].toLowerCase()) !== -1;
+          });
+        return kept.length ? (":root{" + kept.join(";") + ";}") : "";
+      });
+    }
+
+    return output;
   }
 
   function convinarCssInterno(doc) {

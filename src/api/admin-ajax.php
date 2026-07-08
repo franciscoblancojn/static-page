@@ -189,47 +189,6 @@ function STPA_get_global_sections_dir()
     return $upload_dir['basedir'] . '/' . $output_dir . '/section-global';
 }
 
-function STPA_fetch_page_html($page_id)
-{
-    $url = add_query_arg(STPA_KEY . '_DISABLE', '1', get_permalink($page_id));
-    $response = wp_remote_get($url, [
-        'timeout' => 60,
-        'sslverify' => false,
-        'headers' => ['Cache-Control' => 'no-cache'],
-    ]);
-    if (is_wp_error($response)) {
-        throw new Exception('Error al obtener la página: ' . $response->get_error_message());
-    }
-    return wp_remote_retrieve_body($response);
-}
-
-function STPA_extract_element_by_key($html, $key)
-{
-    $dom = new DOMDocument();
-    libxml_use_internal_errors(true);
-    $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-    libxml_clear_errors();
-
-    $xpath = new DOMXPath($dom);
-
-    if (strpos($key, '#') === 0) {
-        $id = substr($key, 1);
-        $nodes = $xpath->query("//*[@id='$id']");
-    } elseif (strpos($key, '.') === 0) {
-        $class = substr($key, 1);
-        $nodes = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]");
-    } else {
-        $nodes = $xpath->query("//{$key}");
-    }
-
-    if (!$nodes || $nodes->length === 0) {
-        throw new Exception("No se encontró el elemento '{$key}' en la página seleccionada.");
-    }
-
-    $node = $nodes->item(0);
-    return $dom->saveHTML($node);
-}
-
 function STPA_sanitize_gs_key($key)
 {
     return preg_replace('/[^a-zA-Z0-9#._-]/', '', trim($key));
@@ -264,6 +223,7 @@ add_action('wp_ajax_stpa_gs_create', function () {
 
         $page_id = intval($_POST['page_id'] ?? 0);
         $key = STPA_sanitize_gs_key($_POST['key'] ?? '');
+        $elementHtml = wp_unslash($_POST['html'] ?? '');
 
         if (!$page_id || !get_post($page_id)) {
             wp_send_json_error(['message' => 'Página no válida']);
@@ -271,9 +231,9 @@ add_action('wp_ajax_stpa_gs_create', function () {
         if (empty($key)) {
             wp_send_json_error(['message' => 'La clave de búsqueda es requerida']);
         }
-
-        $html = STPA_fetch_page_html($page_id);
-        $elementHtml = STPA_extract_element_by_key($html, $key);
+        if (trim($elementHtml) === '') {
+            wp_send_json_error(['message' => "No se encontró el elemento '{$key}' en la página seleccionada."]);
+        }
 
         STPA_save_global_section($key, $elementHtml, $page_id);
 
@@ -297,6 +257,7 @@ add_action('wp_ajax_stpa_gs_regenerate', function () {
 
         $key = STPA_sanitize_gs_key($_POST['key'] ?? '');
         $page_id = intval($_POST['page_id'] ?? 0);
+        $elementHtml = wp_unslash($_POST['html'] ?? '');
 
         if (empty($key)) {
             wp_send_json_error(['message' => 'Clave no válida']);
@@ -304,9 +265,9 @@ add_action('wp_ajax_stpa_gs_regenerate', function () {
         if (!$page_id || !get_post($page_id)) {
             wp_send_json_error(['message' => 'Página de origen no válida']);
         }
-
-        $html = STPA_fetch_page_html($page_id);
-        $elementHtml = STPA_extract_element_by_key($html, $key);
+        if (trim($elementHtml) === '') {
+            wp_send_json_error(['message' => "No se encontró el elemento '{$key}' en la página seleccionada."]);
+        }
 
         STPA_save_global_section($key, $elementHtml, $page_id);
 
