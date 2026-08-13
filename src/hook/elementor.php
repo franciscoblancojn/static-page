@@ -14,9 +14,6 @@ add_action('elementor/editor/after_enqueue_scripts', function () {
     if (!$url) return;
     $url .= '?' . STPA_KEY . '_DISABLE=1';
 
-    $css_url = home_url('/?' . STPA_KEY . '_ASSET=page-' . $post_id . '.css');
-    $js_url = home_url('/?' . STPA_KEY . '_ASSET=page-' . $post_id . '.js');
-
     $bool_keys = [
         STPA_PAGE_CONFIG::KEY_ACTIVE,
         STPA_PAGE_CONFIG::KEY_CSS_EXTERNO,
@@ -46,8 +43,6 @@ add_action('elementor/editor/after_enqueue_scripts', function () {
             const CONFIG = <?= json_encode($js_config) ?>;
             const URL = <?= json_encode($url) ?>;
             const POST_ID = <?= (int) $post_id ?>;
-            const CSS_URL = <?= json_encode($css_url) ?>;
-            const JS_URL = <?= json_encode($js_url) ?>;
             const HEADERS = {
                 "Content-Type": "application/json",
                 "X-WP-Nonce": <?= json_encode(wp_create_nonce('wp_rest')) ?>,
@@ -92,20 +87,7 @@ add_action('elementor/editor/after_enqueue_scripts', function () {
 
             async function regenerateStaticPage() {
                 try {
-                    const html = await getCode(URL);
-                    const cssHref = CONFIG['<?= STPA_PAGE_CONFIG::KEY_CSS_FILE ?>'] ? CSS_URL : null;
-                    const jsHref = CONFIG['<?= STPA_PAGE_CONFIG::KEY_JS_FILE ?>'] ? JS_URL : null;
-                    const result = await procesingHtml(html, URL, CONFIG, cssHref, jsHref);
-                    const bodyData = {
-                        html: result.html
-                    };
-                    if (CONFIG['<?= STPA_PAGE_CONFIG::KEY_CSS_FILE ?>'] && result.css) bodyData.css = result.css;
-                    if (CONFIG['<?= STPA_PAGE_CONFIG::KEY_JS_FILE ?>'] && result.js) bodyData.js = result.js;
-                    await fetch("/wp-json/<?= STPA_KEY ?>/html/" + POST_ID + "/", {
-                        method: "POST",
-                        headers: HEADERS,
-                        body: JSON.stringify(bodyData)
-                    });
+                    await stpaGenerateAndSaveStatic(POST_ID, URL, CONFIG, HEADERS);
                     stpaNotify('Static Page Generada correctamente', 'success');
                 } catch (e) {
                     stpaNotify('Error al generar Static Page: ' + e.message, 'error');

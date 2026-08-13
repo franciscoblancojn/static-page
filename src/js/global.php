@@ -229,24 +229,8 @@
             });
             const configData = await configResp.json();
             if (!configData.success) throw new Error(configData?.message || 'Error al obtener config');
-            const config = configData.config;
 
-            const html = await getCode(url + "?<?= STPA_KEY ?>_DISABLE=1");
-            const result = await procesingHtml(html, url, config);
-
-            const bodyData = {
-                html: result.html
-            };
-            if (result.css) bodyData.css = result.css;
-            if (result.js) bodyData.js = result.js;
-
-            const saveResp = await fetch("/wp-json/<?= STPA_KEY ?>/html/" + postId + "/", {
-                method: "POST",
-                headers: STPA_HEADERS,
-                body: JSON.stringify(bodyData)
-            });
-            const saveData = await saveResp.json();
-            if (!saveData.success) throw new Error(saveData?.message || 'Error al guardar');
+            await stpaGenerateAndSaveStatic(postId, url, configData.config, STPA_HEADERS);
         }
 
         const regenBtns = document.querySelectorAll('.stpa-regenerate');

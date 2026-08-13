@@ -741,4 +741,48 @@
       js
     };
   }
+
+  const stpa_home_url = <?= json_encode(home_url('/')) ?>;
+
+  function stpaBuildAssetHref(postId, ext) {
+    return stpa_home_url + '?<?= STPA_KEY ?>_ASSET=page-' + postId + '.' + ext;
+  }
+
+  /**
+   * Punto único de generación: obtiene el HTML publicado de la página,
+   * lo procesa según `config` (mismas reglas de CSS/JS externo, purge,
+   * lazy images, admin bar, etc. que usa procesingHtml) y guarda el
+   * resultado vía el endpoint REST /html/{id}. Usado tanto para la
+   * generación individual (metabox, Elementor) como para el regenerar
+   * individual/masivo desde el listado, de modo que todos produzcan
+   * exactamente el mismo resultado.
+   */
+  async function stpaGenerateAndSaveStatic(postId, url, config, headers) {
+    const disableParam = '<?= STPA_KEY ?>_DISABLE=1';
+    const fetchUrl = url.includes(disableParam) ? url : url + (url.includes('?') ? '&' : '?') + disableParam;
+    const html = await getCode(fetchUrl);
+    if (!html) {
+      throw new Error('No se pudo obtener el HTML de la página');
+    }
+
+    const cssHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE ? stpaBuildAssetHref(postId, 'css') : null;
+    const jsHref = config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE ? stpaBuildAssetHref(postId, 'js') : null;
+
+    const result = await procesingHtml(html, url, config, cssHref, jsHref);
+
+    const bodyData = { html: result.html };
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_CSS_FILE && result.css) bodyData.css = result.css;
+    if (config?.<?= STPA_KEY ?>_PAGE_STATIC_JS_FILE && result.js) bodyData.js = result.js;
+
+    const saveResp = await fetch("/wp-json/<?= STPA_KEY ?>/html/" + postId + "/", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(bodyData)
+    });
+    const saveData = await saveResp.json();
+    if (!saveData.success) {
+      throw new Error(saveData?.message || 'Error al guardar');
+    }
+    return { ...saveData, css: result.css, js: result.js };
+  }
 </script>
